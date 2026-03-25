@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SymphonyAI — Webflow Component Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F5F4F0;--surface:#FFFFFF;--surface2:#EEECEA;--border:rgba(0,0,0,0.10);--border-strong:rgba(0,0,0,0.18);
+  --text:#1A1917;--text-2:#6B6860;--text-3:#9E9B95;--radius:10px;--radius-lg:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+.header-left{display:flex;align-items:center;gap:16px;}
+.wordmark{font-size:12px;font-weight:500;letter-spacing:0.08em;color:var(--text-2);text-transform:uppercase;}
+.wordmark span{color:var(--text);}
+.hdiv{width:1px;height:18px;background:var(--border-strong);}
+.header-title{font-size:14px;font-weight:500;}
+.header-badge{font-size:11px;background:var(--surface2);color:var(--text-2);padding:3px 10px;border-radius:20px;font-family:'DM Mono',monospace;}
+
+.toolbar{padding:14px 28px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface);}
+.search-wrap{position:relative;flex:1;min-width:180px;max-width:300px;}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;width:14px;height:14px;}
+.search-wrap input{width:100%;padding:7px 10px 7px 32px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;}
+.search-wrap input:focus{border-color:var(--text);}
+select{padding:7px 26px 7px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%236B6860' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;}
+.toolbar-stats{margin-left:auto;font-size:12px;color:var(--text-3);font-family:'DM Mono',monospace;white-space:nowrap;}
+
+.main{padding:24px 28px 60px;}
+
+.cat-section{margin-bottom:36px;}
+.cat-header{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.cat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.cat-name{font-size:11px;font-weight:500;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-2);}
+.cat-count{font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace;}
+
+.comp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;}
+
+.comp-card{background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);overflow:hidden;transition:border-color 0.12s,box-shadow 0.12s;cursor:pointer;}
+.comp-card:hover{border-color:var(--border-strong);box-shadow:0 2px 12px rgba(0,0,0,0.08);}
+.comp-card.is-removing{border-color:rgba(180,40,40,0.15);}
+.comp-card.is-removing .card-screenshot{background:#FDF4F4;}
+
+.card-screenshot{width:100%;aspect-ratio:16/9;background:var(--surface2);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;}
+.card-screenshot img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;}
+.screenshot-placeholder{color:var(--text-3);font-size:11px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.screenshot-placeholder svg{opacity:0.3;width:22px;height:22px;}
+.hover-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.12s,background 0.12s;}
+.comp-card:hover .hover-overlay{opacity:1;background:rgba(0,0,0,0.30);}
+.hover-inner{background:white;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:5px;}
+
+.card-body{padding:12px 14px;}
+.card-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;line-height:1.35;}
+.card-slug{font-size:10px;color:var(--text-3);font-family:'DM Mono',monospace;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.card-meta{display:flex;align-items:center;gap:5px;margin-bottom:9px;flex-wrap:wrap;}
+.usage-count{font-size:11px;color:var(--text-3);font-family:'DM Mono',monospace;}
+.cat-pill{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;}
+
+/* ── TWO-TAG ROW ── */
+.card-tags{display:flex;gap:6px;margin-bottom:8px;align-items:center;}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;border:1px solid;white-space:nowrap;cursor:pointer;transition:opacity 0.1s;}
+.tag:hover{opacity:0.75;}
+.tag svg{width:11px;height:11px;flex-shrink:0;}
+
+/* Migration tag */
+.tag-migrating{background:#E6F5ED;color:#156635;border-color:#A8D9BB;}
+.tag-removing{background:#FEF2F2;color:#991515;border-color:#ECA0A0;}
+.tag-unset-migration{background:var(--surface2);color:var(--text-3);border-color:var(--border-strong);border-style:dashed;}
+
+/* Status tag */
+.tag-working{background:#EEF4FF;color:#1A4A8A;border-color:#A0B8F0;}
+.tag-needs-fix{background:#FFF8E6;color:#7A4200;border-color:#F0C060;}
+.tag-unset-status{background:var(--surface2);color:var(--text-3);border-color:var(--border-strong);border-style:dashed;}
+
+.card-note{font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:8px;font-style:italic;padding:6px 8px;background:var(--surface2);border-radius:6px;}
+
+.card-footer{display:flex;align-items:center;justify-content:space-between;}
+.edit-btn{font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--border-strong);background:transparent;color:var(--text-2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.1s;}
+.edit-btn:hover{background:var(--surface2);color:var(--text);}
+
+/* ── MODAL ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:520px;border:1px solid var(--border);max-height:90vh;overflow-y:auto;}
+.modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;}
+.modal-title{font-size:15px;font-weight:500;}
+.modal-sub{font-size:11px;color:var(--text-3);margin-top:2px;font-family:'DM Mono',monospace;}
+.close-btn{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:18px;line-height:1;padding:2px;}
+.close-btn:hover{color:var(--text);}
+.modal-body{padding:18px 22px;display:flex;flex-direction:column;gap:16px;}
+.field-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);margin-bottom:6px;}
+
+/* tag toggle groups in modal */
+.tag-group{display:flex;gap:8px;}
+.tag-toggle{flex:1;padding:10px 12px;border-radius:var(--radius);border:1.5px solid var(--border-strong);cursor:pointer;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text-2);text-align:center;transition:all 0.12s;}
+.tag-toggle:hover{background:var(--surface2);}
+.tag-toggle.active-migrating{background:#E6F5ED;color:#156635;border-color:#A8D9BB;}
+.tag-toggle.active-removing{background:#FEF2F2;color:#991515;border-color:#ECA0A0;}
+.tag-toggle.active-working{background:#EEF4FF;color:#1A4A8A;border-color:#A0B8F0;}
+.tag-toggle.active-needs-fix{background:#FFF8E6;color:#7A4200;border-color:#F0C060;}
+
+.screenshot-drop{border:1.5px dashed var(--border-strong);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:border-color 0.12s,background 0.12s;position:relative;}
+.screenshot-drop:hover,.screenshot-drop.drag-over{border-color:var(--text);background:var(--surface2);}
+.screenshot-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.screenshot-drop p{font-size:13px;color:var(--text-2);}
+.screenshot-drop .drop-hint{font-size:11px;color:var(--text-3);margin-top:3px;}
+.screenshot-preview{width:100%;border-radius:8px;margin-top:10px;display:block;border:1px solid var(--border);}
+textarea{width:100%;padding:9px 11px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;resize:vertical;min-height:75px;outline:none;line-height:1.5;}
+textarea:focus{border-color:var(--text);}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.btn-primary{background:var(--text);color:white;border:none;padding:8px 18px;border-radius:var(--radius);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;}
+.btn-primary:hover{opacity:0.85;}
+.btn-secondary{background:transparent;color:var(--text-2);border:1px solid var(--border-strong);padding:7px 14px;border-radius:var(--radius);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;}
+.btn-secondary:hover{background:var(--surface2);}
+.btn-ghost-danger{background:transparent;color:#991515;border:none;padding:7px 0;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;text-decoration:underline;text-underline-offset:2px;}
+.btn-ghost-danger:hover{opacity:0.7;}
+
+.saving-toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:white;padding:9px 15px;border-radius:var(--radius);font-size:12px;font-family:'DM Mono',monospace;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:300;}
+.saving-toast.show{opacity:1;}
+.hidden{display:none!important;}
+.empty-state{padding:48px;text-align:center;color:var(--text-3);font-size:14px;}
+.modal-section-title{font-size:12px;font-weight:500;color:var(--text-2);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.modal-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="wordmark"><span>SymphonyAI</span> × Baunfire</span>
+    <div class="hdiv"></div>
+    <span class="header-title">Webflow Component Library</span>
+  </div>
+  <span class="header-badge" id="header-badge">141 components</span>
+</header>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="search" placeholder="Search components…" oninput="filterCards()">
+  </div>
+  <select id="catFilter" onchange="filterCards()">
+    <option value="">All categories</option>
+    <option value="hero">Hero</option>
+    <option value="cta">CTA</option>
+    <option value="content">Content</option>
+    <option value="cards">Cards & lists</option>
+    <option value="resources">Resources</option>
+    <option value="logos">Logos</option>
+    <option value="media">Media & sliders</option>
+    <option value="data">Data & social proof</option>
+    <option value="utility">Utility</option>
+  </select>
+  <select id="migFilter" onchange="filterCards()">
+    <option value="">Migrating & removing</option>
+    <option value="migrating">Migrating</option>
+    <option value="removing">Removing</option>
+  </select>
+  <select id="statusFilter" onchange="filterCards()">
+    <option value="">Working & needs fix</option>
+    <option value="working">Working</option>
+    <option value="needs-fix">Needs fix</option>
+  </select>
+  <div style="position:relative;flex:1;min-width:180px;max-width:300px;">
+    <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;width:14px;height:14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <input type="text" id="pageFilter" list="page-list" placeholder="Filter by page…" oninput="filterCards()" style="width:100%;padding:7px 10px 7px 32px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;">
+    <datalist id="page-list"></datalist>
+  </div>
+  <span class="toolbar-stats" id="toolbar-stats">141 shown</span>
+</div>
+
+<div class="main" id="main-content"></div>
+<div class="saving-toast" id="saving-toast">Saved</div>
+
+<!-- MODAL -->
+<div class="modal-backdrop hidden" id="modal" onclick="handleBackdropClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title"></div>
+        <div class="modal-sub" id="modal-sub"></div>
+      </div>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div>
+        <div class="modal-section-title">Category</div>
+        <select id="cat-select" style="width:100%;padding:9px 28px 9px 11px;">
+          <option value="hero">Hero</option>
+          <option value="cta">CTA</option>
+          <option value="content">Content</option>
+          <option value="cards">Cards &amp; lists</option>
+          <option value="resources">Resources</option>
+          <option value="logos">Logos</option>
+          <option value="media">Media &amp; sliders</option>
+          <option value="data">Data &amp; social proof</option>
+          <option value="utility">Utility</option>
+          <option value="microsoft">Microsoft</option>
+        </select>
+      </div>
+
+      <div>
+        <div class="modal-section-title">Migration</div>
+        <div class="tag-group">
+          <button class="tag-toggle" id="tog-migrating" onclick="setMig('migrating')">Migrating</button>
+          <button class="tag-toggle" id="tog-removing"  onclick="setMig('removing')">Removing</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="modal-section-title">Status</div>
+        <div class="tag-group">
+          <button class="tag-toggle" id="tog-working"   onclick="setStat('working')">Working</button>
+          <button class="tag-toggle" id="tog-needs-fix" onclick="setStat('needs-fix')">Needs fix</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="modal-section-title">Notes</div>
+        <textarea id="notes-input" placeholder="e.g. Light mode only — works on solution pages, broken on homepage. Dev to fix before handoff."></textarea>
+      </div>
+
+      <div>
+        <div class="modal-section-title">Screenshot</div>
+        <div class="screenshot-drop" id="drop-zone">
+          <input type="file" accept="image/*" id="file-input" onchange="handleFileSelect(event)">
+          <p>Drop screenshot here or click to upload</p>
+          <p class="drop-hint">PNG, JPG, WebP · any size</p>
+        </div>
+        <img id="preview-img" class="screenshot-preview hidden" src="" alt="">
+        <button class="btn-ghost-danger" id="remove-screenshot-btn" style="display:none;margin-top:6px;" onclick="removeScreenshot()">Remove screenshot</button>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveCard()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'symphony-components-v3';
+
+const CAT_META = {
+  hero:     {label:'Hero',            color:'#2D5FA8',bg:'#EEF3FC'},
+  cta:      {label:'CTA',             color:'#1A7A4A',bg:'#E6F5ED'},
+  content:  {label:'Content',         color:'#6B3FA0',bg:'#F3EEFF'},
+  cards:    {label:'Cards & lists',   color:'#B0396A',bg:'#FCEEF4'},
+  resources:{label:'Resources',       color:'#A05A00',bg:'#FFF4E6'},
+  logos:    {label:'Logos',           color:'#2A7A5A',bg:'#E6F5F0'},
+  media:    {label:'Media & sliders', color:'#4A4845',bg:'#EEECEA'},
+  data:     {label:'Data & social',   color:'#A03030',bg:'#FCEAEA'},
+  utility:  {label:'Utility',         color:'#5A5A5A',bg:'#F0EEE8'},
+  microsoft:{label:'Microsoft',       color:'#0068B8',bg:'#E5F1FB'},
+};
+
+const MIG_META = {
+  'migrating': {label:'Migrating', cls:'tag-migrating'},
+  'removing':  {label:'Removing',  cls:'tag-removing'},
+};
+const STAT_META = {
+  'working':   {label:'Working',    cls:'tag-working'},
+  'needs-fix': {label:'Needs fix',  cls:'tag-needs-fix'},
+};
+
+const COMPONENTS = [{"id":"assessment-entries","name":"Assessment Entries","slug":"acf/assessment-entries","cat":"utility","keepPages":1,"removePages":0,"status":"keep"},{"id":"assessment-tool","name":"Assessment Tool","slug":"acf/assessment-tool","cat":"utility","keepPages":0,"removePages":0,"status":"keep"},{"id":"assessment-tool-results","name":"Assessment Tool Results","slug":"acf/assessment-tool-results","cat":"utility","keepPages":0,"removePages":0,"status":"keep"},{"id":"cta-section-2","name":"CTA Section 2","slug":"acf/cta-section-2","cat":"cta","keepPages":0,"removePages":0,"status":"keep"},{"id":"domains","name":"Domains","slug":"acf/domains","cat":"utility","keepPages":0,"removePages":0,"status":"keep"},{"id":"doughnut-chart","name":"Doughnut Chart","slug":"acf/doughnut-chart","cat":"utility","keepPages":0,"removePages":0,"status":"keep"},{"id":"assessment-tool-maturity-gap","name":"Assessment Tool Maturity Gap","slug":"acf/maturity-gap","cat":"utility","keepPages":0,"removePages":0,"status":"keep"},{"id":"score","name":"Score","slug":"acf/score","cat":"utility","keepPages":0,"removePages":0,"status":"keep"},{"id":"shadow-container","name":"Shadow Container","slug":"acf/shadow-container","cat":"utility","keepPages":0,"removePages":0,"status":"keep"},{"id":"steps-block","name":"Steps Block","slug":"acf/steps","cat":"data","keepPages":0,"removePages":0,"status":"keep"},{"id":"confirmation-message","name":"Confirmation Message","slug":"acf/confirmation-message","cat":"cta","keepPages":1,"removePages":0,"status":"keep"},{"id":"contact-form","name":"Contact Form","slug":"acf/contact-form","cat":"cta","keepPages":0,"removePages":0,"status":"keep"},{"id":"cta-block","name":"CTA Block","slug":"acf/cta","cat":"cta","keepPages":0,"removePages":0,"status":"keep"},{"id":"cta-section","name":"CTA Section","slug":"acf/cta-section","cat":"cta","keepPages":0,"removePages":0,"status":"keep"},{"id":"events-block","name":"Events Block","slug":"acf/husl-events","cat":"resources","keepPages":5,"removePages":4,"status":"keep"},{"id":"hero","name":"Hero","slug":"acf/hero","cat":"hero","keepPages":26,"removePages":3,"status":"keep"},{"id":"llm-blocks-container","name":"LLM Blocks Container","slug":"acf/llm-blocks-container","cat":"content","keepPages":2,"removePages":0,"status":"keep"},{"id":"llm-datasets","name":"LLM Datasets","slug":"acf/llm-datasets","cat":"utility","keepPages":2,"removePages":0,"status":"keep"},{"id":"llm-divided-content","name":"LLM Divided Content","slug":"acf/llm-divided-content","cat":"utility","keepPages":2,"removePages":0,"status":"keep"},{"id":"llm-footer","name":"LLM Footer","slug":"acf/llm-footer","cat":"utility","keepPages":2,"removePages":0,"status":"keep"},{"id":"llm-hero","name":"LLM Hero","slug":"acf/llm-hero","cat":"hero","keepPages":3,"removePages":0,"status":"keep"},{"id":"llm-image-grid","name":"LLM Image Grid","slug":"acf/llm-image-grid","cat":"media","keepPages":2,"removePages":2,"status":"keep"},{"id":"llm-logos-box","name":"LLM Logos Box","slug":"acf/llm-logos-box","cat":"logos","keepPages":2,"removePages":0,"status":"keep"},{"id":"news-block","name":"News Block","slug":"acf/news","cat":"resources","keepPages":5,"removePages":1,"status":"keep"},{"id":"normal-content-block","name":"Normal Content Block","slug":"acf/normal-content","cat":"content","keepPages":15,"removePages":1,"status":"keep"},{"id":"request-a-demo","name":"Request a demo","slug":"acf/request-a-demo","cat":"cta","keepPages":6,"removePages":1,"status":"keep"},{"id":"partners-request-a-demo","name":"Partners Request a demo","slug":"acf/partners-request-a-demo","cat":"cta","keepPages":1,"removePages":0,"status":"keep"},{"id":"resources-block","name":"Resources Block","slug":"acf/resources","cat":"resources","keepPages":2,"removePages":0,"status":"keep"},{"id":"50-50-cta-image","name":"50/50 Call to Action Block with Image","slug":"acf/gtb-ab002","cat":"cta","keepPages":86,"removePages":21,"status":"keep"},{"id":"accordion-tabs-image-video","name":"Accordion Tabs with Image and Video","slug":"acf/gtb-ab003","cat":"media","keepPages":10,"removePages":1,"status":"keep"},{"id":"solutions-overview-blocklist","name":"Solutions Overview BlockList","slug":"acf/gtb-ab004","cat":"cards","keepPages":5,"removePages":0,"status":"keep"},{"id":"4-blocks-icon-title-text","name":"4 Blocks with Icon, Title & Text","slug":"acf/gtb-ab005","cat":"cards","keepPages":76,"removePages":34,"status":"keep"},{"id":"3-up-icon-title-text","name":"3 Up Icon Title Text","slug":"acf/gtb-ab007","cat":"cards","keepPages":35,"removePages":8,"status":"keep"},{"id":"vertical-solutions-list","name":"Vertical Solutions List","slug":"acf/gtb-ab008","cat":"cards","keepPages":8,"removePages":1,"status":"keep"},{"id":"icon-subcopy-blocks","name":"Icon Subcopy Blocks","slug":"acf/gtb-ab009","cat":"cards","keepPages":31,"removePages":8,"status":"keep"},{"id":"50-50-cta-video-bg","name":"50/50 Call to Action Block with Video or Image Background","slug":"acf/gtb-ab010","cat":"cta","keepPages":42,"removePages":37,"status":"keep"},{"id":"featured-solutions-list","name":"Featured Solutions List","slug":"acf/gtb-ab011","cat":"cards","keepPages":31,"removePages":1,"status":"keep"},{"id":"2-up-icon-title-text","name":"2 Up Icon Title Text","slug":"acf/gtb-ab013","cat":"cards","keepPages":9,"removePages":1,"status":"keep"},{"id":"40-60-tab-module","name":"40/60 Tab Module","slug":"acf/gtb-ab014","cat":"content","keepPages":7,"removePages":2,"status":"keep"},{"id":"colored-tab-module","name":"Colored Tab Module","slug":"acf/gtb-ab015","cat":"content","keepPages":46,"removePages":6,"status":"keep"},{"id":"solutions-grid-module","name":"Solutions Grid Module","slug":"acf/gtb-ab016","cat":"cards","keepPages":1,"removePages":0,"status":"keep"},{"id":"solutions-vertical-slider","name":"Solutions Vertical Slider","slug":"acf/gtb-ab017","cat":"media","keepPages":1,"removePages":0,"status":"keep"},{"id":"solutions-overview-blocklist-new","name":"Solutions Overview BlockList - New","slug":"acf/gtb-ab018","cat":"cards","keepPages":1,"removePages":0,"status":"keep"},{"id":"accordion-faq-tabs-new","name":"Accordion FAQ Tabs - New","slug":"acf/gtb-ab019","cat":"data","keepPages":27,"removePages":12,"status":"keep"},{"id":"cta-left","name":"CTA Left","slug":"acf/gtb-bn001","cat":"cta","keepPages":13,"removePages":19,"status":"keep"},{"id":"cta-center-banner","name":"CTA Center Banner","slug":"acf/gtb-bn002","cat":"cta","keepPages":66,"removePages":7,"status":"keep"},{"id":"leadership-grid","name":"Leadership Grid","slug":"acf/gtb-data001","cat":"data","keepPages":1,"removePages":0,"status":"keep"},{"id":"resources","name":"Resources","slug":"acf/gtb-fr001","cat":"resources","keepPages":47,"removePages":28,"status":"keep"},{"id":"latest-news-resources-events","name":"Latest News / Resources / Events","slug":"acf/gtb-fr002","cat":"resources","keepPages":77,"removePages":37,"status":"keep"},{"id":"featured-resources","name":"Featured Resources","slug":"acf/gtb-fr003","cat":"resources","keepPages":94,"removePages":22,"status":"keep"},{"id":"featured-resources-slider-full","name":"Featured Resources Slider - Full","slug":"acf/gtb-fr005","cat":"resources","keepPages":0,"removePages":5,"status":"remove-only"},{"id":"secondary-hero-full-bg","name":"Secondary Hero Full BG","slug":"acf/gtb-hr002","cat":"hero","keepPages":4,"removePages":0,"status":"keep"},{"id":"secondary-hero-50-50","name":"Secondary Hero 50/50","slug":"acf/gtb-hr003","cat":"hero","keepPages":148,"removePages":57,"status":"keep"},{"id":"secondary-hero-60-40","name":"Secondary Hero 60/40","slug":"acf/gtb-hr004","cat":"hero","keepPages":1,"removePages":0,"status":"keep"},{"id":"homepage-50-50","name":"Homepage 50/50","slug":"acf/gtb-hr006","cat":"hero","keepPages":0,"removePages":1,"status":"remove-only"},{"id":"main-logo-band","name":"Main Logo Band","slug":"acf/gtb-log001","cat":"logos","keepPages":14,"removePages":6,"status":"keep"},{"id":"logos-grid","name":"Logos Grid","slug":"acf/gtb-log002","cat":"logos","keepPages":7,"removePages":2,"status":"keep"},{"id":"icon-cards-slider","name":"Icon Cards Slider","slug":"acf/gtb-sl001","cat":"media","keepPages":2,"removePages":0,"status":"keep"},{"id":"solutions-slider","name":"Solutions Slider","slug":"acf/gtb-sl002","cat":"media","keepPages":59,"removePages":34,"status":"keep"},{"id":"testimonials-slider","name":"Testimonials Slider","slug":"acf/gtb-sl003","cat":"media","keepPages":11,"removePages":3,"status":"keep"},{"id":"sticky-text-image","name":"Sticky Text & Image","slug":"acf/gtb-sl004","cat":"content","keepPages":1,"removePages":0,"status":"keep"},{"id":"slider-video-bg-content","name":"Slider Video BG Content","slug":"acf/gtb-sl005","cat":"media","keepPages":16,"removePages":3,"status":"keep"},{"id":"homepage-icon-card-grid","name":"Homepage Icon Card Grid","slug":"acf/gtb-sl006","cat":"cards","keepPages":0,"removePages":2,"status":"remove-only"},{"id":"table-of-contents","name":"Table of Contents (TOC)","slug":"acf/gtb-toc001","cat":"content","keepPages":4,"removePages":0,"status":"keep"},{"id":"50-50-blocks","name":"50/50 Blocks","slug":"acf/gtb-txt001","cat":"content","keepPages":4,"removePages":1,"status":"keep"},{"id":"fullwidth-image-content","name":"Fullwidth Image Content","slug":"acf/gtb-txt002","cat":"content","keepPages":31,"removePages":13,"status":"keep"},{"id":"stats-block","name":"Stats Block","slug":"acf/gtb-txt003","cat":"data","keepPages":43,"removePages":4,"status":"keep"},{"id":"testimonial-single-block","name":"Testimonial Single Block","slug":"acf/gtb-txt004","cat":"data","keepPages":8,"removePages":0,"status":"keep"},{"id":"overview-image-content","name":"Overview Image Content","slug":"acf/gtb-txt005","cat":"content","keepPages":3,"removePages":3,"status":"keep"},{"id":"2-up-image-title-text-cards","name":"2 Up Image, Title & Text Cards","slug":"acf/gtb-txt006","cat":"cards","keepPages":1,"removePages":17,"status":"keep"},{"id":"4-up-image-title-text-cards","name":"4 Up Image, Title & Text Cards","slug":"acf/gtb-txt007","cat":"cards","keepPages":2,"removePages":0,"status":"keep"},{"id":"diagram-3-block-contents-text","name":"Diagram 3 Block Contents Text","slug":"acf/gtb-txt008","cat":"content","keepPages":1,"removePages":0,"status":"keep"},{"id":"video-play","name":"Video Play","slug":"acf/gtb-vid001","cat":"media","keepPages":6,"removePages":3,"status":"keep"},{"id":"sai-3-blocks","name":"SAI - 3 Blocks","slug":"acf/sai-3-blocks","cat":"content","keepPages":0,"removePages":3,"status":"remove-only"},{"id":"sai-50-50","name":"SAI - 50/50","slug":"acf/sai-50-50","cat":"content","keepPages":0,"removePages":3,"status":"remove-only"},{"id":"sai-accordion","name":"SAI - Accordion","slug":"acf/sai-accordion","cat":"content","keepPages":0,"removePages":3,"status":"remove-only"},{"id":"sai-accordion-images","name":"SAI - Accordion Images","slug":"acf/sai-accordion-images","cat":"content","keepPages":0,"removePages":3,"status":"remove-only"},{"id":"sai-cta","name":"SAI - CTA","slug":"acf/sai-cta","cat":"cta","keepPages":0,"removePages":4,"status":"remove-only"},{"id":"sai-carousel","name":"SAI - Carousel","slug":"acf/sai-carousel","cat":"media","keepPages":0,"removePages":3,"status":"remove-only"},{"id":"sai-carousel-50-50","name":"SAI - Carousel - 50/50","slug":"acf/sai-carousel-50-50","cat":"media","keepPages":0,"removePages":3,"status":"remove-only"},{"id":"sai-carousel-accordion","name":"SAI - Carousel Accordion","slug":"acf/sai-carousel-accordion","cat":"media","keepPages":0,"removePages":3,"status":"remove-only"},{"id":"sai-featured-resources","name":"SAI - Featured Resources","slug":"acf/sai-featured-resources","cat":"resources","keepPages":0,"removePages":2,"status":"remove-only"},{"id":"sai-full-width-video","name":"SAI - Full Width Video","slug":"acf/sai-full-width-video","cat":"media","keepPages":0,"removePages":3,"status":"remove-only"},{"id":"sai-hero-banner","name":"SAI - Hero Banner","slug":"acf/sai-hero-banner","cat":"hero","keepPages":0,"removePages":1,"status":"remove-only"},{"id":"sai-icon-cards-slider","name":"SAI - Icon Cards Slider","slug":"acf/sai-icon-cards-slider","cat":"media","keepPages":0,"removePages":2,"status":"remove-only"},{"id":"sai-integration","name":"SAI - Integration","slug":"acf/sai-integration","cat":"content","keepPages":0,"removePages":1,"status":"remove-only"},{"id":"sai-spotlight","name":"SAI - Spotlight","slug":"acf/sai-spotlight","cat":"content","keepPages":0,"removePages":2,"status":"remove-only"},{"id":"sai-stats","name":"SAI - Stats","slug":"acf/sai-stats","cat":"data","keepPages":0,"removePages":3,"status":"remove-only"},{"id":"sv2-50-50","name":"SV2 50 50","slug":"acf/sv2-50-50","cat":"content","keepPages":0,"removePages":1,"status":"remove-only"},{"id":"sv2-60-40","name":"SV2 - 60 40","slug":"acf/sv2-60-40","cat":"content","keepPages":2,"removePages":1,"status":"keep"},{"id":"sv2-ai-that-moves","name":"SV2 AI That Moves","slug":"acf/sv2-ai-that-moves","cat":"content","keepPages":7,"removePages":0,"status":"keep"},{"id":"sv2-ai-awwards","name":"SV2 AI Awwards","slug":"acf/sv2-ai-awwards","cat":"content","keepPages":0,"removePages":0,"status":"unused"},{"id":"sv2-banner","name":"SV2 - Banner","slug":"acf/sv2-banner","cat":"content","keepPages":6,"removePages":0,"status":"keep"},{"id":"sv2-cta-block","name":"SV2 CTA Block","slug":"acf/sv2-cta","cat":"cta","keepPages":7,"removePages":0,"status":"keep"},{"id":"sv2-cta-with-bg","name":"SV2 CTA With BG","slug":"acf/sv2-cta-w-bg","cat":"cta","keepPages":6,"removePages":0,"status":"keep"},{"id":"sv2-cards","name":"SV2 Cards","slug":"acf/sv2-cards","cat":"cards","keepPages":6,"removePages":0,"status":"keep"},{"id":"sv2-carousel-two-column","name":"SV2 Carousel Two Column","slug":"acf/sv2-carousel-two-column","cat":"media","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-content-accordion","name":"SV2 Content Accordion","slug":"acf/sv2-content-accordion","cat":"content","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-content-bg","name":"SV2 Content BG","slug":"acf/sv2-content-bg","cat":"content","keepPages":2,"removePages":0,"status":"keep"},{"id":"sv2-content-cards","name":"SV2 Content Cards","slug":"acf/sv2-content-cards","cat":"cards","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-content-carousel","name":"SV2 Content Carousel","slug":"acf/sv2-content-carousel","cat":"media","keepPages":2,"removePages":0,"status":"keep"},{"id":"sv2-content-carousel-table","name":"SV2 Content Carousel Table","slug":"acf/sv2-content-carousel-table","cat":"media","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-content-table","name":"SV2 Content Table","slug":"acf/sv2-content-table","cat":"content","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-eureka-4-icon","name":"SV2 Eureka 4 Icon","slug":"acf/sv2-eureka-4-icon","cat":"content","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-eureka-agentic-features","name":"SV2 Eureka Agentic features","slug":"acf/sv2-eureka-agentic-features","cat":"content","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-eureka-cta","name":"SV2 Eureka CTA","slug":"acf/sv2-eureka-cta","cat":"cta","keepPages":3,"removePages":0,"status":"keep"},{"id":"sv2-eureka-cards","name":"SV2 Eureka Cards","slug":"acf/sv2-eureka-cards","cat":"cards","keepPages":4,"removePages":0,"status":"keep"},{"id":"sv2-eureka-content-block","name":"SV2 Eureka Content Block","slug":"acf/sv2-eureka-content-block","cat":"content","keepPages":4,"removePages":0,"status":"keep"},{"id":"sv2-eureka-duo-cards","name":"SV2-Eureka-Duo-Cards","slug":"acf/sv2-eureka-duo-cards","cat":"cards","keepPages":2,"removePages":0,"status":"keep"},{"id":"sv2-eureka-hero","name":"SV2 Eureka Hero","slug":"acf/sv2-eureka-hero","cat":"hero","keepPages":5,"removePages":0,"status":"keep"},{"id":"sv2-eureka-hero-50","name":"SV2 Eureka Hero 50","slug":"acf/sv2-eureka-hero-50","cat":"hero","keepPages":3,"removePages":0,"status":"keep"},{"id":"sv2-eureka-logos","name":"SV2 - Eureka Logos","slug":"acf/sv2-eureka-logos","cat":"logos","keepPages":2,"removePages":0,"status":"keep"},{"id":"sv2-eureka-responsive-cards","name":"SV2 Eureka Responsive Cards","slug":"acf/sv2-eureka-responsive-cards","cat":"cards","keepPages":2,"removePages":0,"status":"keep"},{"id":"sv2-eureka-steps","name":"SV2 Eureka Steps","slug":"acf/sv2-eureka-steps","cat":"data","keepPages":2,"removePages":0,"status":"keep"},{"id":"sv2-features-3-up-icons","name":"SV2 Features 3 up with icons","slug":"acf/sv2-features-3-up-with-icons","cat":"content","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-fullwidth-image-content","name":"SV2 Fullwidth Image Content","slug":"acf/sv2-full-width-image-content","cat":"content","keepPages":6,"removePages":0,"status":"keep"},{"id":"sv2-hero-application-detail","name":"SV2 Hero Application Detail","slug":"acf/hero-application-detail","cat":"hero","keepPages":1,"removePages":0,"status":"keep"},{"id":"homepage-resources","name":"Homepage Resources","slug":"acf/sv2-homepage-resources","cat":"resources","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-cards","name":"SV2 Microsoft Cards","slug":"acf/sv2-microsoft-cards","cat":"cards","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-faq","name":"SV2 Microsoft FAQ","slug":"acf/sv2-microsoft-faq","cat":"data","keepPages":4,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-hero","name":"SV2 Microsoft Hero","slug":"acf/sv2-microsoft-hero","cat":"hero","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-intro","name":"SV2 Microsoft Intro","slug":"acf/sv2-microsoft-intro","cat":"data","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-link","name":"SV2 Microsoft Link","slug":"acf/sv2-microsoft-link","cat":"data","keepPages":3,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-related-resources","name":"SV2 Microsoft Related Resources","slug":"acf/sv2-microsoft-related-resources","cat":"resources","keepPages":3,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-testimonial","name":"SV2 Microsoft Testimonial","slug":"acf/sv2-microsoft-testimonial","cat":"data","keepPages":2,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-testimonial-carousel","name":"SV2 Microsoft Testimonial Carousel","slug":"acf/sv2-microsoft-testimonial-carousel","cat":"media","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-value","name":"SV2 Microsoft Value","slug":"acf/sv2-microsoft-value","cat":"data","keepPages":2,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-vertical-slide","name":"SV2 Microsoft Vertical Slide","slug":"acf/sv2-microsoft-vertical-slide","cat":"data","keepPages":2,"removePages":0,"status":"keep"},{"id":"sv2-microsoft-video","name":"SV2 Microsoft Video","slug":"acf/sv2-microsoft-video","cat":"media","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-po-50","name":"SV2 PO 50","slug":"acf/sv2-po-50","cat":"content","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-po-big-card","name":"SV2 PO Big Card","slug":"acf/sv2-po-big-card","cat":"cards","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-po-cta","name":"SV2 PO CTA","slug":"acf/sv2-po-cta","cat":"cta","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-po-hero","name":"SV2 PO Hero","slug":"acf/sv2-po-hero","cat":"hero","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-po-latest-news","name":"SV2 PO Latest News","slug":"acf/sv2-po-latest-news","cat":"resources","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-po-logo","name":"SV2 PO Logo","slug":"acf/sv2-po-logo","cat":"logos","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-po-microsoft-card","name":"SV2 PO Microsoft Card","slug":"acf/sv2-po-microsoft-card","cat":"cards","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-po-resources","name":"SV2 PO Resources","slug":"acf/sv2-po-resources","cat":"resources","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-personas","name":"SV2 Personas","slug":"acf/sv2-personas","cat":"content","keepPages":5,"removePages":0,"status":"keep"},{"id":"sv2-scrolling-logos","name":"SV2 - Scrolling Logos","slug":"acf/sv2-scrolling-logos","cat":"logos","keepPages":7,"removePages":0,"status":"keep"},{"id":"sv2-slider","name":"SV2 Slider","slug":"acf/sv2-slider","cat":"media","keepPages":1,"removePages":0,"status":"keep"},{"id":"sv2-wonder-wall","name":"SV2 - Wonder Wall","slug":"acf/sv2-wonder-wall","cat":"content","keepPages":6,"removePages":0,"status":"keep"}];
+
+let cardData = {};
+let currentEdit = null;
+let currentImg = null;
+let editMig = null;
+let editStat = null;
+let saveTimer = null;
+
+function defaultMig(comp) {
+  return (comp.status === 'remove-only' || comp.status === 'unused') ? 'removing' : null;
+}
+
+const PAGE_MAP = {"Home":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","homepage-resources","sv2-scrolling-logos","sv2-wonder-wall"],"Retail CPG - Landing Page":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-fullwidth-image-content","sv2-personas","sv2-scrolling-logos","sv2-wonder-wall"],"Revenue growth management for CPGs - Retail Subpage":["table-of-contents"],"Collaboration Monetization - Retail Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","50-50-cta-video-bg","cta-center-banner","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content","stats-block"],"Workbench - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Service Desk Intelligence - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Self-service Capability - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Question and answer - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Personalization - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Multi-Tenant - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Multi-Channel Support - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Live Agent Transfer - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Knowledge Recommendation - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Conversational Flows - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Auto Resolve - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"API Integration - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"NLU - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"24/7 Availability - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Advanced Analytics - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Connected Retail - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","cta-center-banner","secondary-hero-50-50","solutions-slider","fullwidth-image-content","video-play"],"Fuel Convenience-  Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","50-50-cta-video-bg","featured-solutions-list","cta-left","solutions-slider"],"Fuel Analytics - Retail Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-left","secondary-hero-50-50"],"Customer Insights Platform - Retail Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-left","featured-resources","secondary-hero-50-50"],"Data Decisioning - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","vertical-solutions-list","icon-subcopy-blocks-acf-gtb-ab009","cta-left","secondary-hero-50-50"],"Assortment Optimization - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","stats-block"],"Apex IT Platform - Retail Subpage":["50-50-cta-image","vertical-solutions-list","50-50-cta-video-bg","cta-center-banner","resources","latest-news-resources-events","secondary-hero-full-bg","testimonials-slider"],"Retail Generative AI Copilots - Retail Subpage":["50-50-cta-image","vertical-solutions-list","icon-subcopy-blocks-acf-gtb-ab009","cta-center-banner","latest-news-resources-events","featured-resources","secondary-hero-50-50","50-50-blocks","diagram-3-block-contents-text"],"Shelf Planning - Retail Subpage":["50-50-cta-image","4-blocks-icon-title-text","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"CPG - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","vertical-solutions-list","50-50-cta-video-bg","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","testimonials-slider","stats-block"],"Supply Chain Management - Retail Subpage":["solutions-overview-blocklist","3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"Supply Chain Intelligence - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"Replenishment and Allocation - Retail Subpage":["3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"Demand Forecasting - Retail Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"Supply Chain - Retail Subpage":["3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","solutions-slider","stats-block"],"Promotion Optimization - Retail Subpage":["50-50-cta-image","4-blocks-icon-title-text","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"Personalized Marketing - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block"],"CINDE AI - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","video-play"],"Merchandising and Marketing - Retail Subpage":["solutions-overview-blocklist","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","featured-resources","secondary-hero-50-50","solutions-slider","stats-block"],"Store Operations - Retail Subpage":["50-50-cta-image","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","testimonials-slider","stats-block"],"Store Intelligence - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","stats-block"],"Macro Space Planning - Retail Subpage":["50-50-cta-image","4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","stats-block"],"Store and Space - Retail Subpage":["solutions-overview-blocklist","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","solutions-slider","stats-block"],"Digital Agent - Retail Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50"],"Grocery - Retail Industry Page":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","cta-center-banner","latest-news-resources-events","featured-resources","secondary-hero-50-50","solutions-slider","testimonials-slider","stats-block"],"Pharma - Retail Industry Page":["50-50-cta-image","4-blocks-icon-title-text","cta-left","secondary-hero-50-50"],"Resources \u2013 Retail CPG":["hero","latest-news-resources-events"],"Events \u2013 Retail CPG":["events-block","hero","latest-news-resources-events"],"News \u2013 Retail CPG":["hero","news-block"],"Financial Services - Landing Page":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-fullwidth-image-content","sv2-personas","sv2-scrolling-logos","sv2-wonder-wall"],"Financial Platform":["sv2-60-40","sv2-eureka-cards","sv2-eureka-hero","sv2-eureka-hero-50","sv2-fullwidth-image-content","sv2-microsoft-faq","sv2-microsoft-related-resources","sv2-microsoft-vertical-slide"],"Sensa Risk Intelligence - redirects to the platform page":["50-50-cta-image","2-up-icon-title-text","featured-resources","secondary-hero-50-50","solutions-slider"],"Agentic AI - FS Subpage":["50-50-cta-image","vertical-solutions-list","2-up-icon-title-text","featured-resources","secondary-hero-50-50","solutions-slider","testimonials-slider"],"Anti-Money Laundering - FS Subpage":["50-50-cta-image","accordion-tabs-image-video","solutions-overview-blocklist","vertical-solutions-list","50-50-cta-video-bg","featured-solutions-list","2-up-icon-title-text","accordion-faq-tabs-new","cta-center-banner","secondary-hero-50-50","solutions-slider","testimonials-slider","table-of-contents","stats-block"],"AML Software - FS Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","50-50-cta-video-bg","2-up-icon-title-text","accordion-faq-tabs-new","cta-left","latest-news-resources-events","featured-resources","secondary-hero-50-50","main-logo-band","table-of-contents"],"Case Management - FS Subpage":["accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider"],"NetReveal Payment Fraud - FS Subpage":["50-50-cta-image","featured-resources","secondary-hero-50-50","solutions-slider"],"NetReveal Sanctions Screening - FS Subpage":["50-50-cta-image","featured-resources","secondary-hero-50-50","solutions-slider"],"KYC CDD - FS Subpage":["50-50-cta-image","accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider","stats-block"],"Transaction Monitoring - FS Subpage":["50-50-cta-image","accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider","stats-block"],"NetReveal Transaction Monitoring - FS Subpage":["50-50-cta-image","resources","latest-news-resources-events","secondary-hero-50-50"],"Sensa Copilot - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","accordion-faq-tabs-new","cta-center-banner","resources","secondary-hero-50-50"],"Scale - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50"],"Fraud - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50"],"Risk - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50"],"Detection - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","latest-news-resources-events","secondary-hero-50-50"],"Entity Resolution - FS Subpage":["50-50-cta-image","resources","featured-resources","secondary-hero-50-50","solutions-slider"],"Scale Performance - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Name Screening - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Transaction Screening - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"False Positives - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Match Accuracy - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Compliance - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Interactive Demo - FS Subpage":["hero","50-50-cta-video-bg"],"Decision Automation - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Unified Data - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","latest-news-resources-events","secondary-hero-50-50"],"Sanctions Screening - FS Subpage":["accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider","stats-block"],"Onboarding - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Disclosures - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50"],"Risk Assessment - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Investigate - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","latest-news-resources-events","secondary-hero-50-50"],"Centralize Data - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","cta-center-banner","resources","secondary-hero-50-50"],"Administrative - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","cta-center-banner","resources","secondary-hero-50-50"],"SensaAI for AML - FS Subpage":["50-50-cta-image","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content"],"SensaAI for Sanctions - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","featured-resources","secondary-hero-50-50","stats-block"],"AI Overlays- FS Subpage":["accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider","stats-block"],"Sensa Investigation Hub - FS Subpage":["50-50-cta-image","featured-resources","secondary-hero-50-50"],"Enterprise Investigation Management - FS Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Recognition \u2013 Financial Services - FS Subpage":["4-blocks-icon-title-text","cta-left","resources","latest-news-resources-events","secondary-hero-full-bg","main-logo-band"],"Customer Due Diligence (CDD) - FS Subpage":["50-50-cta-image","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content"],"Payment Fraud - FS Subpage":["50-50-cta-image","accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider","stats-block"],"WLM Name Screening - FS Subpage":["3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider","slider-video-bg-content","stats-block"],"WLM Transaction Screening - FS Subpage":["normal-content-block","3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider","slider-video-bg-content","stats-block"],"Banking - FS Industry page":["3-up-icon-title-text-acf-gtb-ab007","50-50-cta-video-bg","featured-solutions-list","accordion-faq-tabs-new","resources","latest-news-resources-events","secondary-hero-50-50","stats-block"],"Private banking and wealth management - FS Industry page":["3-up-icon-title-text-acf-gtb-ab007","50-50-cta-video-bg","featured-solutions-list","accordion-faq-tabs-new","resources","latest-news-resources-events","secondary-hero-50-50","slider-video-bg-content"],"Insurance - FS Industry page":["50-50-cta-image","colored-tab-module","accordion-faq-tabs-new","latest-news-resources-events","featured-resources","secondary-hero-50-50","main-logo-band","solutions-slider","stats-block"],"Financial markets - FS Industry page":["50-50-cta-video-bg","featured-solutions-list","accordion-faq-tabs-new","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider","stats-block"],"Gaming - FS Industry page":["50-50-cta-image","colored-tab-module","accordion-faq-tabs-new","latest-news-resources-events","featured-resources","secondary-hero-50-50","main-logo-band"],"Events \u2013 Financial Services":["events-block","hero","latest-news-resources-events"],"News \u2013 Financial Services":["news-block"],"Resources \u2013 Financial Services":["hero","latest-news-resources-events"],"Industrial - Landing Page":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-fullwidth-image-content","sv2-personas","sv2-scrolling-logos","sv2-wonder-wall"],"IRIS Forge - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","accordion-faq-tabs-new","cta-left","featured-resources","secondary-hero-50-50","fullwidth-image-content","stats-block"],"IRIS Flows - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","40-60-tab-module","cta-left","featured-resources","secondary-hero-50-50","fullwidth-image-content","video-play"],"NVIDIA Omniverse for IRIS Foundry - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50","fullwidth-image-content"],"MS AI Agent \u2013 Industrial Data Exploration & Investigation Agent- Industrial Subpage":["colored-tab-module","cta-center-banner","featured-resources","secondary-hero-50-50","slider-video-bg-content"],"MS AI Agent \u2013 Frontline Worker Agent - Industrial Subpage":["colored-tab-module","cta-center-banner","featured-resources","secondary-hero-50-50","slider-video-bg-content"],"Skills Training- Industrial Subpage":["cta-center-banner","featured-resources","secondary-hero-50-50","50-50-blocks","fullwidth-image-content"],"Model Context Protocol (MCP) - Industrial Subpage":["accordion-tabs-image-video","4-blocks-icon-title-text","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","fullwidth-image-content"],"CPG - Industrial Subpage":["sv2-60-40","sv2-ai-that-moves","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-fullwidth-image-content","sv2-personas","sv2-scrolling-logos","sv2-wonder-wall"],"Unified Namespace: the complete guide - Industrial Subpage":["accordion-tabs-image-video","solutions-overview-blocklist","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","2-up-icon-title-text","accordion-faq-tabs-new","cta-center-banner","secondary-hero-50-50","solutions-slider","testimonials-slider","table-of-contents"],"Manufacturing Workflow Intelligence - Industrial Subpage":["2-up-icon-title-text","40-60-tab-module","colored-tab-module","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content","stats-block","testimonial-single-block"],"Predictive Asset Intelligence - Industrial Subpage":["50-50-cta-image","2-up-icon-title-text","40-60-tab-module","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content","stats-block","testimonial-single-block"],"Plant Insights - Industrial Subpage":["40-60-tab-module","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content","stats-block"],"IRIS Workspace- Industrial Subpage":["40-60-tab-module","featured-resources","secondary-hero-50-50","fullwidth-image-content","stats-block"],"Why SymphonyAI - Industrial Subpage":["40-60-tab-module","cta-left","resources","secondary-hero-50-50","fullwidth-image-content","stats-block"],"ML Studio - Industrial Subpage":["50-50-cta-image","colored-tab-module","featured-resources","secondary-hero-60-40","fullwidth-image-content"],"Unified Namespace - Industrial Subpage":["50-50-cta-image","accordion-tabs-image-video","icon-subcopy-blocks-acf-gtb-ab009","50-50-cta-video-bg","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","slider-video-bg-content","fullwidth-image-content"],"P&ID Ingestion - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","secondary-hero-50-50","slider-video-bg-content","fullwidth-image-content"],"Vision AI - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","featured-resources","secondary-hero-50-50","fullwidth-image-content"],"IRIS Foundry - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-left","featured-resources","secondary-hero-50-50","slider-video-bg-content","fullwidth-image-content","video-play"],"Industrial Data Operations - Industrial Subpage":["4-blocks-icon-title-text","cta-left","resources","secondary-hero-50-50","slider-video-bg-content","fullwidth-image-content"],"Connectors - Industrial Subpage":["4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","50-50-cta-video-bg","featured-resources","secondary-hero-50-50","fullwidth-image-content"],"Industrial LLM - Industrial Subpage":["llm-blocks-container","llm-datasets","llm-divided-content","llm-footer","llm-hero","llm-image-grid","llm-logos-box"],"Industrial LLM \u2013 Symphony - Industrial Subpage":["llm-blocks-container","llm-datasets","llm-divided-content","llm-footer","llm-hero","llm-image-grid","llm-logos-box","featured-resources"],"Smart Manufacturing Platform - Industrial Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content"],"Industrial AI Copilots - Industrial Subpage":["50-50-cta-image","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block"],"Knowledge Graph - Industrial Subpage":["4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","cta-left","featured-resources","secondary-hero-50-50","fullwidth-image-content","overview-image-content"],"Digital Twin - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","50-50-cta-video-bg","2-up-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50","sticky-text-image","fullwidth-image-content","video-play"],"Digital Work Instructions - Industrial Subpage":["cta-center-banner","featured-resources","secondary-hero-50-50","50-50-blocks","fullwidth-image-content"],"Process - Industrial Subpage":["icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50","fullwidth-image-content"],"Connected Worker - Industrial Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","40-60-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","solutions-slider","testimonials-slider","fullwidth-image-content","stats-block"],"Digital Inspections - Industrial Subpage":["cta-center-banner","featured-resources","secondary-hero-50-50","50-50-blocks","fullwidth-image-content"],"Food and Beverage - Industrial Industry":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","solutions-grid-module","solutions-vertical-slider","latest-news-resources-events","secondary-hero-50-50"],"Utilities - Industrial Industry":["icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50","fullwidth-image-content"],"Semiconductor - Industrial Industry":["4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50"],"Pharmaceutical - Industrial Industry":["3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50"],"Oil and gas - Industrial Industry":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50"],"Energy - Industrial Industry":["3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50"],"Chemical - Industrial Industry":["3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50"],"Assembly - Industrial Industry":["icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50","fullwidth-image-content"],"Events \u2013 Industrial":["events-block","hero","latest-news-resources-events"],"News \u2013 Industrial":["hero","news-block"],"Resources \u2013 Industrial":["hero","latest-news-resources-events"],"Enterprise IT \u2013 New - Landing Page":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-personas","sv2-scrolling-logos","sv2-wonder-wall"],"Apex 2.0 \u2013 Enterprise IT":["hero","sv2-carousel-two-column","sv2-content-accordion","sv2-content-bg","sv2-content-cards","sv2-content-carousel","sv2-content-carousel-table","sv2-content-table","sv2-hero-application-detail","sv2-microsoft-faq","sv2-microsoft-value"],"Agentic AI - ITSM Subpage":["50-50-cta-image","4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","50-50-cta-video-bg","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","fullwidth-image-content"],"Global Capability Centers - ITSM Subpage":["vertical-solutions-list","50-50-cta-video-bg","featured-solutions-list","cta-center-banner","featured-resources","secondary-hero-50-50"],"Security and Trust - ITSM Subpage":["latest-news-resources-events","secondary-hero-50-50"],"Integration Hub - ITSM Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","main-logo-band"],"Discovery - ITSM Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50"],"Design Studio - ITSM Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50"],"Service Automation - ITSM Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50"],"IT Asset Management - ITSM Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50"],"IT Service Management - ITSM Subpage":["50-50-cta-image","vertical-solutions-list","50-50-cta-video-bg","featured-solutions-list","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","testimonials-slider","stats-block"],"Events \u2013 IT":["events-block","hero","latest-news-resources-events"],"News \u2013 IT":["hero","news-block"],"Resources \u2013 IT":["hero","latest-news-resources-events"],"Media Landing \u2013 New - Landing Page":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-fullwidth-image-content","sv2-microsoft-related-resources","sv2-scrolling-logos"],"Data Ops Suite - Media Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","cta-center-banner","secondary-hero-50-50"],"Products - Media Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50"],"Managed Services - Media Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","cta-center-banner","featured-resources","secondary-hero-50-50","solutions-slider","stats-block"],"Revedia - Media Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","cta-center-banner","featured-resources","secondary-hero-50-50","solutions-slider","stats-block"],"Audit Services - Media Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","cta-center-banner","resources","secondary-hero-50-50","stats-block"],"Eureka AI Platform":["2-up-image-title-text-cards","sv2-eureka-4-icon","sv2-eureka-cards","sv2-eureka-content-block","sv2-eureka-duo-cards","sv2-eureka-hero","sv2-eureka-logos"],"Make Your Data AI Ready":["sv2-eureka-cta","sv2-eureka-cards","sv2-eureka-content-block","sv2-eureka-duo-cards","sv2-eureka-hero","sv2-eureka-hero-50","sv2-eureka-steps"],"Eureka \u2013 Build AI Agents":["sv2-eureka-agentic-features","sv2-eureka-cta","sv2-eureka-content-block","sv2-eureka-hero","sv2-eureka-hero-50","sv2-eureka-responsive-cards","sv2-eureka-steps","sv2-microsoft-link","sv2-slider"],"Responsible AI":["50-50-cta-image","4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","50-50-cta-video-bg","featured-solutions-list","accordion-faq-tabs-new","featured-resources","secondary-hero-50-50"],"Resources":["hero","resources-block","latest-news-resources-events"],"About SymphonyAI":["50-50-cta-image","50-50-cta-video-bg","accordion-faq-tabs-new","latest-news-resources-events","secondary-hero-full-bg","main-logo-band","stats-block","4-up-image-title-text-cards"],"Vertical AI":["sv2-content-bg","sv2-content-carousel","sv2-eureka-cta","sv2-eureka-cards","sv2-eureka-content-block","sv2-eureka-hero","sv2-eureka-responsive-cards","sv2-features-3-up-icons","sv2-microsoft-link","sv2-microsoft-testimonial"],"News":["hero","news-block","latest-news-resources-events"],"Events":["events-block","hero"],"Customers":["resources-block","accordion-faq-tabs-new","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","icon-cards-slider","testimonials-slider"],"Industry Awards and Recognition":["hero","icon-subcopy-blocks-acf-gtb-ab009","50-50-cta-video-bg","cta-center-banner"],"Partner Overview":["sv2-eureka-logos","sv2-microsoft-faq","sv2-po-50","sv2-po-big-card","sv2-po-cta","sv2-po-hero","sv2-po-latest-news","sv2-po-logo","sv2-po-microsoft-card","sv2-po-resources"],"Leadership":["hero","50-50-cta-image","cta-center-banner","leadership-grid","latest-news-resources-events","overview-image-content"],"Careers":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","accordion-faq-tabs-new","cta-center-banner","latest-news-resources-events","secondary-hero-full-bg","icon-cards-slider","solutions-slider","testimonials-slider","4-up-image-title-text-cards"],"Contact us":["request-a-demo","4-blocks-icon-title-text","featured-solutions-list","latest-news-resources-events","overview-image-content"],"Get started":["latest-news-resources-events","featured-resources"],"Get started \u2013 Retail":["request-a-demo","latest-news-resources-events","featured-resources"],"Get started - FS":["request-a-demo","latest-news-resources-events","featured-resources"],"Get started \u2013 Industrial":["request-a-demo","latest-news-resources-events","featured-resources"],"Get started \u2013 ITSM":["request-a-demo","latest-news-resources-events","featured-resources"],"Get started \u2013 Media":["request-a-demo","cta-center-banner","latest-news-resources-events","featured-resources"],"Partners Get Started":["partners-request-a-demo","featured-solutions-list","featured-resources"],"Thank you - Retail Form Thank You Page":["confirmation-message"],"Microsoft Partner - not in menu":["sv2-microsoft-cards","sv2-microsoft-faq","sv2-microsoft-hero","sv2-microsoft-intro","sv2-microsoft-link","sv2-microsoft-related-resources","sv2-microsoft-testimonial","sv2-microsoft-testimonial-carousel","sv2-microsoft-value","sv2-microsoft-vertical-slide","sv2-microsoft-video"],"Support- not in menu":["hero","4-blocks-icon-title-text","50-50-cta-video-bg","colored-tab-module"],"AI SaaS Products- not in menu":["solutions-overview-blocklist-new","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50"],"ROI Calculator":["cta-left"]};
+
+function initPageList() {
+  const dl = document.getElementById('page-list');
+  Object.keys(PAGE_MAP).sort().forEach(p => {
+    const opt = document.createElement('option'); opt.value = p; dl.appendChild(opt);
+  });
+}
+
+function getPageFilterIds(pageVal) {
+  if (!pageVal) return null;
+  if (PAGE_MAP[pageVal]) return new Set(PAGE_MAP[pageVal]);
+  const q = pageVal.toLowerCase();
+  const ids = new Set();
+  Object.entries(PAGE_MAP).forEach(([page, comps]) => {
+    if (page.toLowerCase().includes(q)) comps.forEach(id => ids.add(id));
+  });
+  return ids.size ? ids : new Set();
+}
+
+async function loadData() {
+  try {
+    const r = await window.storage.get(STORAGE_KEY, true);
+    if (r && r.value) cardData = JSON.parse(r.value);
+  } catch(e) { cardData = {}; }
+  // Seed defaults for remove-only/unused
+  COMPONENTS.forEach(c => {
+    if (!cardData[c.id] && defaultMig(c)) {
+      cardData[c.id] = {mig: defaultMig(c), stat: null, note: '', img: null};
+    }
+  });
+  render();
+}
+
+async function saveData() {
+  try {
+    await window.storage.set(STORAGE_KEY, JSON.stringify(cardData), true);
+    showToast('Saved');
+  } catch(e) { showToast('Error saving'); }
+}
+
+function showToast(msg) {
+  const el = document.getElementById('saving-toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+const CAT_ORDER = ['hero','cta','content','cards','resources','logos','media','data','utility','microsoft'];
+
+function render() {
+  const q = (document.getElementById('search')?.value || '').toLowerCase();
+  const catF = document.getElementById('catFilter')?.value || '';
+  const migF = document.getElementById('migFilter')?.value || '';
+  const statF = document.getElementById('statusFilter')?.value || '';
+  const pageF = document.getElementById('pageFilter')?.value || '';
+  const pageIds = getPageFilterIds(pageF);
+  const main = document.getElementById('main-content');
+  main.innerHTML = '';
+  let total = 0;
+
+  CAT_ORDER.forEach(cat => {
+    if (!CAT_META[cat]) return;
+    const comps = COMPONENTS.filter(c => {
+      const d = cardData[c.id] || {};
+      const resolvedCat = d.cat || c.cat;
+      if (resolvedCat !== cat) return false;
+      if (catF && resolvedCat !== catF) return false;
+      if (q && !c.name.toLowerCase().includes(q) && !c.slug.toLowerCase().includes(q)) return false;
+      const mig = d.mig || defaultMig(c);
+      const stat = d.stat || null;
+      if (migF && mig !== migF) return false;
+      if (statF && stat !== statF) return false;
+      if (pageIds !== null && !pageIds.has(c.id)) return false;
+      return true;
+    });
+    if (!comps.length) return;
+    total += comps.length;
+
+    const sec = document.createElement('div');
+    sec.className = 'cat-section';
+    const cm = CAT_META[cat];
+    sec.innerHTML = `<div class="cat-header"><div class="cat-dot" style="background:${cm.color}"></div><span class="cat-name">${cm.label}</span><span class="cat-count">${comps.length}</span></div><div class="comp-grid" id="grid-${cat}"></div>`;
+    main.appendChild(sec);
+    const grid = sec.querySelector(`#grid-${cat}`);
+    comps.forEach(c => grid.appendChild(buildCard(c)));
+  });
+
+  document.getElementById('toolbar-stats').textContent = `${total} shown`;
+  if (!total) main.innerHTML = '<div class="empty-state">No components match your filters.</div>';
+}
+
+function buildCard(comp) {
+  const d = cardData[comp.id] || {};
+  const mig = d.mig || defaultMig(comp);
+  const stat = d.stat || null;
+  const note = d.note || '';
+  const img = d.img || null;
+  const resolvedCat = d.cat || comp.cat;
+  const cm = CAT_META[resolvedCat] || CAT_META.utility;
+  const isRemoving = mig === 'removing';
+
+  const card = document.createElement('div');
+  card.className = 'comp-card' + (isRemoving ? ' is-removing' : '');
+
+  const migMeta = mig ? MIG_META[mig] : null;
+  const statMeta = stat ? STAT_META[stat] : null;
+
+  const migTag = migMeta
+    ? `<span class="tag ${migMeta.cls}">${migMeta.label}</span>`
+    : `<span class="tag tag-unset-migration" onclick="openModal('${comp.id}')">+ Migration</span>`;
+
+  const statTag = statMeta
+    ? `<span class="tag ${statMeta.cls}">${statMeta.label}</span>`
+    : `<span class="tag tag-unset-status" onclick="openModal('${comp.id}')">+ Status</span>`;
+
+  const usageHtml = (comp.keepPages + comp.removePages) > 0
+    ? `<span class="usage-count">×${comp.keepPages}K / ×${comp.removePages}R</span>`
+    : '';
+
+  card.innerHTML = `
+    <div class="card-screenshot">
+      ${img
+        ? `<img src="${img}" alt="${comp.name}" loading="lazy">`
+        : `<div class="screenshot-placeholder"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>No screenshot</span></div>`}
+      <div class="hover-overlay"><div class="hover-inner"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</div></div>
+    </div>
+    <div class="card-body">
+      <div class="card-name">${comp.name}</div>
+      ${comp.slug ? `<div class="card-slug">${comp.slug}</div>` : ''}
+      <div class="card-meta">
+        <span class="cat-pill" style="background:${cm.bg};color:${cm.color}">${cm.label}</span>
+        ${usageHtml}
+      </div>
+      <div class="card-tags">${migTag}${statTag}</div>
+      ${note ? `<div class="card-note">${note}</div>` : ''}
+      <div class="card-footer"><button class="edit-btn" onclick="openModal('${comp.id}')">Edit</button></div>
+    </div>`;
+
+  card.querySelector('.card-screenshot').addEventListener('click', () => openModal(comp.id));
+  return card;
+}
+
+function openModal(id) {
+  currentEdit = id;
+  const comp = COMPONENTS.find(c => c.id === id);
+  const d = cardData[id] || {};
+  editMig  = d.mig  || defaultMig(comp);
+  editStat = d.stat || null;
+  currentImg = d.img || null;
+  const cm = CAT_META[comp.cat] || CAT_META.utility;
+
+  document.getElementById('modal-title').textContent = comp.name;
+  document.getElementById('cat-select').value = d.cat || comp.cat;
+  document.getElementById('modal-sub').textContent = `${comp.slug} · ${cm.label}`;
+  document.getElementById('notes-input').value = d.note || '';
+
+  const preview = document.getElementById('preview-img');
+  const removeBtn = document.getElementById('remove-screenshot-btn');
+  if (currentImg) { preview.src = currentImg; preview.classList.remove('hidden'); removeBtn.style.display = 'block'; }
+  else { preview.src = ''; preview.classList.add('hidden'); removeBtn.style.display = 'none'; }
+
+  updateToggleUI();
+  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('file-input').value = '';
+}
+
+function updateToggleUI() {
+  const ids = ['migrating','removing','working','needs-fix'];
+  ids.forEach(id => {
+    const el = document.getElementById('tog-' + id);
+    el.className = 'tag-toggle';
+    if ((id === editMig) || (id === editStat)) {
+      el.classList.add('active-' + id);
+    }
+  });
+}
+
+function setMig(val) {
+  editMig = editMig === val ? null : val;
+  updateToggleUI();
+}
+function setStat(val) {
+  editStat = editStat === val ? null : val;
+  updateToggleUI();
+}
+
+function handleBackdropClick(e) { if (e.target.id === 'modal') closeModal(); }
+function closeModal() { document.getElementById('modal').classList.add('hidden'); currentEdit = null; currentImg = null; }
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    currentImg = ev.target.result;
+    const p = document.getElementById('preview-img');
+    p.src = currentImg; p.classList.remove('hidden');
+    document.getElementById('remove-screenshot-btn').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeScreenshot() {
+  currentImg = null;
+  document.getElementById('preview-img').classList.add('hidden');
+  document.getElementById('remove-screenshot-btn').style.display = 'none';
+}
+
+function saveCard() {
+  if (!currentEdit) return;
+  cardData[currentEdit] = {
+    cat: document.getElementById('cat-select').value,
+    mig: editMig,
+    stat: editStat,
+    note: document.getElementById('notes-input').value.trim(),
+    img: currentImg
+  };
+  saveData();
+  closeModal();
+  render();
+}
+
+function filterCards() { render(); }
+
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file?.type.startsWith('image/')) {
+    const r = new FileReader();
+    r.onload = ev => {
+      currentImg = ev.target.result;
+      const p = document.getElementById('preview-img');
+      p.src = currentImg; p.classList.remove('hidden');
+      document.getElementById('remove-screenshot-btn').style.display = 'block';
+    };
+    r.readAsDataURL(file);
+  }
+});
+
+loadData();
+initPageList();
+</script>
+</body>
+</html>
