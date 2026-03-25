@@ -4,7 +4,36 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SymphonyAI — Webflow Component Library</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+#auth-wall{position:fixed;inset:0;background:#F5F4F0;z-index:9999;display:flex;align-items:center;justify-content:center;}
+.auth-box{background:#fff;border:1px solid rgba(0,0,0,0.12);border-radius:16px;padding:40px;width:100%;max-width:360px;text-align:center;}
+.auth-logo{font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#6B6860;margin-bottom:24px;}
+.auth-logo span{color:#1A1917;}
+.auth-title{font-size:16px;font-weight:500;color:#1A1917;margin-bottom:6px;font-family:sans-serif;}
+.auth-sub{font-size:13px;color:#9E9B95;margin-bottom:24px;font-family:sans-serif;}
+.auth-input{width:100%;padding:10px 14px;border:1px solid rgba(0,0,0,0.18);border-radius:10px;font-size:14px;font-family:sans-serif;outline:none;margin-bottom:12px;color:#1A1917;background:#fff;}
+.auth-input:focus{border-color:#1A1917;}
+.auth-btn{width:100%;padding:10px;background:#1A1917;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;font-family:sans-serif;cursor:pointer;}
+.auth-btn:hover{opacity:0.85;}
+.auth-error{font-size:12px;color:#A32D2D;margin-top:8px;min-height:16px;font-family:sans-serif;}
+.auth-timeout{font-size:12px;color:#854F0B;background:#FFF4E6;border:1px solid #F0C060;border-radius:8px;padding:8px 12px;margin-bottom:16px;font-family:sans-serif;display:none;}
+</style>
+</head>
+<body>
+
+<div id="auth-wall">
+  <div class="auth-box">
+    <div class="auth-logo"><span>SymphonyAI</span> × Baunfire</div>
+    <div class="auth-title">Component Library</div>
+    <div class="auth-sub">Enter your password to continue</div>
+    <div class="auth-timeout" id="auth-timeout">You were signed out due to inactivity.</div>
+    <input class="auth-input" type="password" id="auth-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkAuth()">
+    <button class="auth-btn" onclick="checkAuth()">Continue</button>
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -258,6 +287,7 @@ textarea:focus{border-color:var(--text);}
     </div>
   </div>
 </div>
+</div><!-- end #app -->
 
 <script>
 const STORAGE_KEY = 'symphony-components-v3';
@@ -660,6 +690,61 @@ dz.addEventListener('drop', e => {
 
 loadData();
 initPageList();
+
+// ── AUTH & INACTIVITY ─────────────────────────────────────────────────────
+// SHA-256 hash of 'symphonyai2026'
+const PWD_HASH = '89619bfd9552601185172727a1c0e7ab8f9e71f8d2352657fc1ff062582b47a9';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+const INACTIVITY_MS = 30 * 60 * 1000; // 30 minutes
+let inactivityTimer = null;
+
+function resetInactivityTimer() {
+  clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(lockOut, INACTIVITY_MS);
+}
+
+function lockOut(timedOut = true) {
+  sessionStorage.removeItem('sai-auth');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-wall').style.display = 'flex';
+  document.getElementById('auth-input').value = '';
+  document.getElementById('auth-error').textContent = '';
+  if (timedOut) document.getElementById('auth-timeout').style.display = 'block';
+  clearTimeout(inactivityTimer);
+}
+
+function unlockApp() {
+  sessionStorage.setItem('sai-auth', '1');
+  document.getElementById('auth-wall').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('auth-timeout').style.display = 'none';
+  resetInactivityTimer();
+  ['mousemove','keydown','click','scroll','touchstart'].forEach(e =>
+    document.addEventListener(e, resetInactivityTimer, {passive: true})
+  );
+}
+
+async function checkAuth() {
+  const val = document.getElementById('auth-input').value;
+  const hash = await sha256(val);
+  if (hash === PWD_HASH) {
+    unlockApp();
+  } else {
+    document.getElementById('auth-error').textContent = 'Incorrect password. Please try again.';
+    document.getElementById('auth-input').value = '';
+    document.getElementById('auth-input').focus();
+  }
+}
+
+// Auto-unlock if already authenticated this session
+if (sessionStorage.getItem('sai-auth') === '1') {
+  unlockApp();
+}
 </script>
 </body>
 </html>
