@@ -338,10 +338,26 @@ function getPageFilterIds(pageVal) {
 }
 
 async function loadData() {
-  try {
-    const r = await window.storage.get(STORAGE_KEY, true);
-    if (r && r.value) cardData = JSON.parse(r.value);
-  } catch(e) { cardData = {}; }
+  // Build fallback list from current version down to v1
+  const currentVersion = parseInt(STORAGE_KEY.replace('symphony-components-v', ''));
+  const keysToTry = [];
+  for (let v = currentVersion; v >= 1; v--) {
+    keysToTry.push(`symphony-components-v${v}`);
+  }
+
+  for (const key of keysToTry) {
+    try {
+      const r = await window.storage.get(key, true);
+      if (r && r.value) {
+        cardData = JSON.parse(r.value);
+        if (key !== STORAGE_KEY) {
+          await window.storage.set(STORAGE_KEY, JSON.stringify(cardData), true);
+          showToast(`Data restored from ${key}`);
+        }
+        break;
+      }
+    } catch(e) { continue; }
+  }
   // Seed defaults for remove-only/unused
   COMPONENTS.forEach(c => {
     if (!cardData[c.id] && defaultMig(c)) {
