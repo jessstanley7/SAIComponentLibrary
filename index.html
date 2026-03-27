@@ -591,9 +591,6 @@ function addPageToEdit() {
   renderPageChips(currentEdit);
 }
 
-function updateToggleUIAndPages() {
-  updateToggleUI();
-
 function updateToggleUI() {
   const ids = ['migrating','removing','working','needs-fix'];
   ids.forEach(id => {
@@ -678,7 +675,7 @@ render();
 loadData();
 initPageList();
 
-// ── EXPORT ───────────────────────────────────────────────────────────────
+// ── EXPORT CSV ───────────────────────────────────────────────────────────
 function exportCSV() {
   const rows = [['Component Name', 'Migration', 'Status', 'Pages']];
 
