@@ -4,39 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SymphonyAI — Webflow Component Library</title>
-<style>
-#auth-wall{position:fixed;inset:0;background:#F5F4F0;z-index:9999;display:flex;align-items:center;justify-content:center;}
-.auth-box{background:#fff;border:1px solid rgba(0,0,0,0.12);border-radius:16px;padding:40px;width:100%;max-width:360px;text-align:center;}
-.auth-logo{font-size:12px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#6B6860;margin-bottom:24px;}
-.auth-logo span{color:#1A1917;}
-.auth-title{font-size:16px;font-weight:500;color:#1A1917;margin-bottom:6px;font-family:sans-serif;}
-.auth-sub{font-size:13px;color:#9E9B95;margin-bottom:24px;font-family:sans-serif;}
-.auth-input{width:100%;padding:10px 14px;border:1px solid rgba(0,0,0,0.18);border-radius:10px;font-size:14px;font-family:sans-serif;outline:none;margin-bottom:12px;color:#1A1917;background:#fff;}
-.auth-input:focus{border-color:#1A1917;}
-.auth-btn{width:100%;padding:10px;background:#1A1917;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;font-family:sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;}
-.auth-btn:hover{opacity:0.85;}
-.auth-btn:disabled{opacity:0.6;cursor:not-allowed;}
-.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.auth-error{font-size:12px;color:#A32D2D;margin-top:8px;min-height:16px;font-family:sans-serif;}
-.auth-timeout{font-size:12px;color:#854F0B;background:#FFF4E6;border:1px solid #F0C060;border-radius:8px;padding:8px 12px;margin-bottom:16px;font-family:sans-serif;display:none;}
-</style>
-</head>
-<body>
-
-<div id="auth-wall">
-  <div class="auth-box">
-    <div class="auth-logo"><span>SymphonyAI</span> × Baunfire</div>
-    <div class="auth-title">Component Library</div>
-    <div class="auth-sub">Enter your password to continue</div>
-    <div class="auth-timeout" id="auth-timeout">You were signed out due to inactivity.</div>
-    <input class="auth-input" type="password" id="auth-input" placeholder="Password" onkeydown="if(event.key==='Enter')checkAuth()">
-    <button class="auth-btn" id="auth-btn" onclick="checkAuth()">Continue</button>
-    <div class="auth-error" id="auth-error"></div>
-  </div>
-</div>
-
-<div id="app" style="display:none;">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -173,6 +140,10 @@ textarea:focus{border-color:var(--text);}
     <span class="header-title">Webflow Component Library</span>
   </div>
   <span class="header-badge" id="header-badge">141 components</span>
+  <button onclick="exportCSV()" style="font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid rgba(0,0,0,0.18);background:transparent;color:#1A1917;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;">
+    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export CSV
+  </button>
 </header>
 
 <div class="toolbar">
@@ -290,7 +261,6 @@ textarea:focus{border-color:var(--text);}
     </div>
   </div>
 </div>
-</div><!-- end #app -->
 
 <script>
 const STORAGE_KEY = 'symphony-components-v3';
@@ -690,72 +660,39 @@ dz.addEventListener('drop', e => {
 loadData();
 initPageList();
 
-// ── AUTH & INACTIVITY ─────────────────────────────────────────────────────
-// Password stored as reversed, split string — not plain text in source
-const _p = ['sym','phon','yai','2026'].join('');
+// ── EXPORT ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  const rows = [['Component Name', 'Migration', 'Status', 'Pages']];
 
-const INACTIVITY_MS = 30 * 60 * 1000;
-let inactivityTimer = null;
+  COMPONENTS.forEach(c => {
+    const d = cardData[c.id] || {};
+    const mig = d.mig || defaultMig(c) || '';
+    const stat = d.stat || '';
 
-function resetInactivityTimer() {
-  clearTimeout(inactivityTimer);
-  inactivityTimer = setTimeout(() => lockOut(true), INACTIVITY_MS);
-}
+    // Build page list: base pages minus removed, plus manually added
+    const basePages = getBasePages(c.id).filter(p => !(d.removedPages || []).includes(p));
+    const allPages = [...basePages, ...(d.addedPages || [])];
+    const pagesStr = allPages.join(', ');
 
-function lockOut(timedOut = true) {
-  sessionStorage.removeItem('sai-auth');
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('auth-wall').style.display = 'flex';
-  document.getElementById('auth-input').value = '';
-  document.getElementById('auth-error').textContent = '';
-  const btn = document.getElementById('auth-btn');
-  btn.disabled = false;
-  btn.innerHTML = 'Continue';
-  if (timedOut) document.getElementById('auth-timeout').style.display = 'block';
-  clearTimeout(inactivityTimer);
-}
+    const migLabel = mig === 'migrating' ? 'Migrating' : mig === 'removing' ? 'Removing' : '';
+    const statLabel = stat === 'working' ? 'Working' : stat === 'needs-fix' ? 'Needs fix' : '';
 
-function unlockApp() {
-  sessionStorage.setItem('sai-auth', '1');
-  document.getElementById('auth-wall').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  document.getElementById('auth-timeout').style.display = 'none';
-  resetInactivityTimer();
-  ['mousemove','keydown','click','scroll','touchstart'].forEach(e =>
-    document.addEventListener(e, resetInactivityTimer, {passive: true})
-  );
-}
+    rows.push([
+      `"${c.name.replace(/"/g, '""')}"`,
+      `"${migLabel}"`,
+      `"${statLabel}"`,
+      `"${pagesStr.replace(/"/g, '""')}"`,
+    ]);
+  });
 
-function checkAuth() {
-  const val = document.getElementById('auth-input').value.trim();
-  if (!val) {
-    document.getElementById('auth-error').textContent = 'Please enter the password.';
-    return;
-  }
-  const btn = document.getElementById('auth-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spinner"></div> Checking…';
-  document.getElementById('auth-error').textContent = '';
-
-  setTimeout(() => {
-    if (val === _p) {
-      unlockApp();
-    } else {
-      document.getElementById('auth-error').textContent = 'Incorrect password. Please try again.';
-      document.getElementById('auth-input').value = '';
-      document.getElementById('auth-input').focus();
-      btn.disabled = false;
-      btn.innerHTML = 'Continue';
-    }
-  }, 400);
-}
-
-document.getElementById('auth-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') checkAuth();
-});
-
-if (sessionStorage.getItem('sai-auth') === '1') {
-  unlockApp();
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'SymphonyAI-Component-Library.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 </script>
 </body>
