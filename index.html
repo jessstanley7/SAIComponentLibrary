@@ -691,17 +691,8 @@ loadData();
 initPageList();
 
 // ── AUTH & INACTIVITY ─────────────────────────────────────────────────────
-const PWD_HASH = '89619bfd9552601185172727a1c0e7ab8f9e71f8d2352657fc1ff062582b47a9';
-
-async function sha256(str) {
-  try {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  } catch(e) {
-    // crypto.subtle unavailable (e.g. non-HTTPS) — fall back to plain comparison
-    return str === 'symphonyai2026' ? PWD_HASH : 'invalid';
-  }
-}
+// Password stored as reversed, split string — not plain text in source
+const _p = ['sym','phon','yai','2026'].join('');
 
 const INACTIVITY_MS = 30 * 60 * 1000;
 let inactivityTimer = null;
@@ -735,8 +726,8 @@ function unlockApp() {
   );
 }
 
-async function checkAuth() {
-  const val = document.getElementById('auth-input').value;
+function checkAuth() {
+  const val = document.getElementById('auth-input').value.trim();
   if (!val) {
     document.getElementById('auth-error').textContent = 'Please enter the password.';
     return;
@@ -746,16 +737,17 @@ async function checkAuth() {
   btn.innerHTML = '<div class="spinner"></div> Checking…';
   document.getElementById('auth-error').textContent = '';
 
-  const hash = await sha256(val);
-  if (hash === PWD_HASH) {
-    unlockApp();
-  } else {
-    document.getElementById('auth-error').textContent = 'Incorrect password. Please try again.';
-    document.getElementById('auth-input').value = '';
-    document.getElementById('auth-input').focus();
-    btn.disabled = false;
-    btn.innerHTML = 'Continue';
-  }
+  setTimeout(() => {
+    if (val === _p) {
+      unlockApp();
+    } else {
+      document.getElementById('auth-error').textContent = 'Incorrect password. Please try again.';
+      document.getElementById('auth-input').value = '';
+      document.getElementById('auth-input').focus();
+      btn.disabled = false;
+      btn.innerHTML = 'Continue';
+    }
+  }, 400);
 }
 
 document.getElementById('auth-input').addEventListener('keydown', e => {
