@@ -344,26 +344,36 @@ function getPageFilterIds(pageVal) {
 }
 
 async function loadData() {
-  // Build fallback list from current version down to v1
-  const currentVersion = parseInt(STORAGE_KEY.replace('symphony-components-v', ''));
-  const keysToTry = [];
-  for (let v = currentVersion; v >= 1; v--) {
-    keysToTry.push(`symphony-components-v${v}`);
+  // Storage is only available inside Claude artifacts — on GitHub Pages it won't exist
+  const storageAvailable = typeof window.storage !== 'undefined';
+
+  if (storageAvailable) {
+    const currentVersion = parseInt(STORAGE_KEY.replace('symphony-components-v', ''));
+    const keysToTry = [];
+    for (let v = currentVersion; v >= 1; v--) {
+      keysToTry.push(`symphony-components-v${v}`);
+    }
+    for (const key of keysToTry) {
+      try {
+        const r = await window.storage.get(key, true);
+        if (r && r.value) {
+          cardData = JSON.parse(r.value);
+          if (key !== STORAGE_KEY) {
+            await window.storage.set(STORAGE_KEY, JSON.stringify(cardData), true);
+            showToast(`Data restored from ${key}`);
+          }
+          break;
+        }
+      } catch(e) { continue; }
+    }
+  } else {
+    // Fall back to localStorage for GitHub Pages
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) cardData = JSON.parse(saved);
+    } catch(e) {}
   }
 
-  for (const key of keysToTry) {
-    try {
-      const r = await window.storage.get(key, true);
-      if (r && r.value) {
-        cardData = JSON.parse(r.value);
-        if (key !== STORAGE_KEY) {
-          await window.storage.set(STORAGE_KEY, JSON.stringify(cardData), true);
-          showToast(`Data restored from ${key}`);
-        }
-        break;
-      }
-    } catch(e) { continue; }
-  }
   // Seed defaults for remove-only/unused
   COMPONENTS.forEach(c => {
     if (!cardData[c.id] && defaultMig(c)) {
@@ -374,8 +384,13 @@ async function loadData() {
 }
 
 async function saveData() {
+  const storageAvailable = typeof window.storage !== 'undefined';
   try {
-    await window.storage.set(STORAGE_KEY, JSON.stringify(cardData), true);
+    if (storageAvailable) {
+      await window.storage.set(STORAGE_KEY, JSON.stringify(cardData), true);
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData));
+    }
     showToast('Saved');
   } catch(e) { showToast('Error saving'); }
 }
