@@ -265,6 +265,37 @@ textarea:focus{border-color:var(--text);}
 <script>
 const STORAGE_KEY = 'symphony-components-v4';
 
+// ── SUPABASE ──────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://iyrwwiauvqqmlzeklsod.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5cnd3aWF1dnFxbWx6ZWtsc29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1ODY4NzEsImV4cCI6MjA5MDE2Mjg3MX0.zgGoEPET8rvAwXUSqwzl7NgxIW8-yN6Zyo_bNLvtozY';
+const DB_ROW_ID = 'main';
+
+async function dbGet() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/component_data?id=eq.${DB_ROW_ID}&select=data`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    return (rows && rows.length > 0) ? rows[0].data : null;
+  } catch(e) { return null; }
+}
+
+async function dbSet(data) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/component_data`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ id: DB_ROW_ID, data: data, updated_at: new Date().toISOString() })
+    });
+    return true;
+  } catch(e) { return false; }
+}
+
 const CAT_META = {
   hero:     {label:'Hero',            color:'#2D5FA8',bg:'#EEF3FC'},
   cta:      {label:'CTA',             color:'#1A7A4A',bg:'#E6F5ED'},
@@ -344,39 +375,26 @@ function getPageFilterIds(pageVal) {
 }
 
 async function loadData() {
-  const storageAvailable = typeof window.storage !== 'undefined';
+  showToast('Loading…');
 
-  const currentVersion = parseInt(STORAGE_KEY.replace('symphony-components-v', ''));
-  const keysToTry = [];
-  for (let v = currentVersion; v >= 1; v--) {
-    keysToTry.push(`symphony-components-v${v}`);
-  }
-
-  if (storageAvailable) {
-    for (const key of keysToTry) {
-      try {
-        const r = await window.storage.get(key, true);
-        if (r && r.value) {
-          cardData = JSON.parse(r.value);
-          if (key !== STORAGE_KEY) {
-            await window.storage.set(STORAGE_KEY, JSON.stringify(cardData), true);
-            showToast(`Data restored from ${key}`);
-          }
-          break;
-        }
-      } catch(e) { continue; }
-    }
+  // Try Supabase first
+  const remote = await dbGet();
+  if (remote) {
+    cardData = remote;
+    // Also cache locally as backup
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData)); } catch(e) {}
+    showToast('');
   } else {
-    // localStorage (GitHub Pages) — check all previous keys too
-    for (const key of keysToTry) {
+    // Fall back to localStorage — check all previous keys
+    const currentVersion = parseInt(STORAGE_KEY.replace('symphony-components-v', ''));
+    for (let v = currentVersion; v >= 1; v--) {
       try {
-        const saved = localStorage.getItem(key);
+        const saved = localStorage.getItem(`symphony-components-v${v}`);
         if (saved) {
           cardData = JSON.parse(saved);
-          if (key !== STORAGE_KEY) {
-            localStorage.setItem(STORAGE_KEY, saved);
-            showToast(`Data restored from ${key}`);
-          }
+          showToast(`Loaded from local backup — saving to cloud…`);
+          // Push local data up to Supabase
+          await dbSet(cardData);
           break;
         }
       } catch(e) { continue; }
@@ -392,15 +410,24 @@ async function loadData() {
 }
 
 async function saveData() {
-  const storageAvailable = typeof window.storage !== 'undefined';
-  try {
-    if (storageAvailable) {
-      await window.storage.set(STORAGE_KEY, JSON.stringify(cardData), true);
-    } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData));
-    }
+  const ok = await dbSet(cardData);
+  if (ok) {
+    // Also keep local cache
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData)); } catch(e) {}
     showToast('Saved');
-  } catch(e) { showToast('Error saving'); }
+  } else {
+    // Supabase failed — try localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData));
+      showToast('Saved locally (cloud unavailable)');
+    } catch(e) {
+      if (e.name === 'QuotaExceededError') {
+        alert('⚠️ Storage limit reached\n\nCloud save also failed. Please check your internet connection and try again.');
+      } else {
+        showToast('Error saving');
+      }
+    }
+  }
 }
 
 function showToast(msg) {
@@ -627,10 +654,21 @@ function handleFileSelect(e) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
-    currentImg = ev.target.result;
-    const p = document.getElementById('preview-img');
-    p.src = currentImg; p.classList.remove('hidden');
-    document.getElementById('remove-screenshot-btn').style.display = 'block';
+    // Compress image before storing to save localStorage space
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      currentImg = canvas.toDataURL('image/jpeg', 0.7);
+      const p = document.getElementById('preview-img');
+      p.src = currentImg; p.classList.remove('hidden');
+      document.getElementById('remove-screenshot-btn').style.display = 'block';
+    };
+    img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 }
