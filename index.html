@@ -410,21 +410,22 @@ async function loadData() {
 }
 
 async function saveData() {
+  showToast('Saving…');
   const ok = await dbSet(cardData);
   if (ok) {
-    // Also keep local cache
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData)); } catch(e) {}
-    showToast('Saved');
+    showToast('✓ Saved to cloud');
   } else {
-    // Supabase failed — try localStorage
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData));
-      showToast('Saved locally (cloud unavailable)');
+      showToast('⚠️ Cloud unavailable — saved locally only');
+      alert('⚠️ Cloud save failed\n\nYour changes have been saved to this browser only — not the shared database.\n\nPlease check your internet connection. Your work is not lost but others won\'t see it until cloud saving is restored.');
     } catch(e) {
       if (e.name === 'QuotaExceededError') {
-        alert('⚠️ Storage limit reached\n\nCloud save also failed. Please check your internet connection and try again.');
+        alert('🚨 Save failed — storage full\n\nCloud save failed AND your browser storage is full. Your changes have NOT been saved.\n\nPlease check your internet connection and try again.');
       } else {
-        showToast('Error saving');
+        showToast('🚨 Save failed');
+        alert('🚨 Save failed\n\nNeither cloud nor local save worked. Please check your internet connection and try again. Do not close this tab.');
       }
     }
   }
@@ -432,9 +433,10 @@ async function saveData() {
 
 function showToast(msg) {
   const el = document.getElementById('saving-toast');
+  if (!msg) { el.classList.remove('show'); return; }
   el.textContent = msg; el.classList.add('show');
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => el.classList.remove('show'), 2000);
+  saveTimer = setTimeout(() => el.classList.remove('show'), 4000);
 }
 
 const CAT_ORDER = ['hero','cta','content','cards','resources','logos','media','data','utility','microsoft'];
