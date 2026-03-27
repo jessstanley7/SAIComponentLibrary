@@ -672,6 +672,9 @@ dz.addEventListener('drop', e => {
   }
 });
 
+// Render immediately with empty cardData so page is never blank
+render();
+// Then load saved data and re-render
 loadData();
 initPageList();
 
