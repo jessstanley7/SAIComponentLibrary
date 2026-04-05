@@ -268,32 +268,110 @@ const STORAGE_KEY = 'symphony-components-v4';
 // ── SUPABASE ──────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://iyrwwiauvqqmlzeklsod.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5cnd3aWF1dnFxbWx6ZWtsc29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1ODY4NzEsImV4cCI6MjA5MDE2Mjg3MX0.zgGoEPET8rvAwXUSqwzl7NgxIW8-yN6Zyo_bNLvtozY';
-const DB_ROW_ID = 'main';
+const HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'resolution=merge-duplicates'
+};
 
-async function dbGet() {
+// Fetch all rows and return as cardData object
+async function dbGetAll() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/component_data?id=eq.${DB_ROW_ID}&select=data`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/component_data?select=id,data`, { headers: HEADERS });
+    if (!res.ok) return null;
     const rows = await res.json();
-    return (rows && rows.length > 0) ? rows[0].data : null;
+    if (!rows || !rows.length) return null;
+    const result = {};
+    rows.forEach(r => { result[r.id] = r.data; });
+    return result;
   } catch(e) { return null; }
 }
 
-async function dbSet(data) {
+// Save one component — tiny payload, always fast
+async function dbSetOne(compId, compData) {
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/component_data`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/component_data`, {
       method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({ id: DB_ROW_ID, data: data, updated_at: new Date().toISOString() })
+      headers: HEADERS,
+      body: JSON.stringify({ id: compId, data: compData, updated_at: new Date().toISOString() })
     });
-    return true;
+    return res.ok;
   } catch(e) { return false; }
+}
+
+// Delete old 'main' blob row after migration
+async function deleteMainRow() {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/component_data?id=eq.main`, {
+      method: 'DELETE', headers: HEADERS
+    });
+  } catch(e) {}
+}
+
+async function loadData() {
+  showToast('Loading…');
+  const rows = await dbGetAll();
+
+  if (rows) {
+    // If old 'main' blob exists, migrate it to individual rows
+    if (rows['main'] && typeof rows['main'] === 'object') {
+      showToast('Migrating to new format — please wait…');
+      const mainData = rows['main'];
+      for (const id of Object.keys(mainData)) {
+        cardData[id] = mainData[id];
+        await dbSetOne(id, mainData[id]);
+      }
+      await deleteMainRow();
+      showToast('✓ Migration complete');
+    } else {
+      cardData = rows;
+      showToast('');
+    }
+  } else {
+    // Supabase unreachable — try localStorage fallback
+    const currentVersion = parseInt(STORAGE_KEY.replace('symphony-components-v', ''));
+    for (let v = currentVersion; v >= 1; v--) {
+      try {
+        const saved = localStorage.getItem(`symphony-components-v${v}`);
+        if (saved) {
+          cardData = JSON.parse(saved);
+          showToast('Loaded locally — saving to cloud…');
+          for (const id of Object.keys(cardData)) {
+            await dbSetOne(id, cardData[id]);
+          }
+          showToast('✓ Saved to cloud');
+          break;
+        }
+      } catch(e) { continue; }
+    }
+  }
+
+  COMPONENTS.forEach(c => {
+    if (!cardData[c.id] && defaultMig(c)) {
+      cardData[c.id] = { mig: defaultMig(c), stat: null, note: '', img: null };
+    }
+  });
+  render();
+}
+
+// Saves only the single component that just changed
+async function saveData(changedId) {
+  if (!changedId) return;
+  showToast('Saving…');
+  const ok = await dbSetOne(changedId, cardData[changedId]);
+  if (ok) {
+    showToast('✓ Saved to cloud');
+  } else {
+    showToast('⚠️ Cloud unavailable');
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData));
+      alert('⚠️ Cloud save failed\n\nSaved to this browser only. Check your internet connection — others won\'t see this change until cloud saving is restored.');
+    } catch(e) {
+      showToast('🚨 Save failed');
+      alert('🚨 Save failed\n\nNeither cloud nor local save worked. Do not close this tab — check your connection and try again.');
+    }
+  }
 }
 
 const CAT_META = {
@@ -372,63 +450,6 @@ function getPageFilterIds(pageVal) {
     }
   });
   return ids.size ? ids : new Set();
-}
-
-async function loadData() {
-  showToast('Loading…');
-
-  // Try Supabase first
-  const remote = await dbGet();
-  if (remote) {
-    cardData = remote;
-    // Also cache locally as backup
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData)); } catch(e) {}
-    showToast('');
-  } else {
-    // Fall back to localStorage — check all previous keys
-    const currentVersion = parseInt(STORAGE_KEY.replace('symphony-components-v', ''));
-    for (let v = currentVersion; v >= 1; v--) {
-      try {
-        const saved = localStorage.getItem(`symphony-components-v${v}`);
-        if (saved) {
-          cardData = JSON.parse(saved);
-          showToast(`Loaded from local backup — saving to cloud…`);
-          // Push local data up to Supabase
-          await dbSet(cardData);
-          break;
-        }
-      } catch(e) { continue; }
-    }
-  }
-
-  COMPONENTS.forEach(c => {
-    if (!cardData[c.id] && defaultMig(c)) {
-      cardData[c.id] = {mig: defaultMig(c), stat: null, note: '', img: null};
-    }
-  });
-  render();
-}
-
-async function saveData() {
-  showToast('Saving…');
-  const ok = await dbSet(cardData);
-  if (ok) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData)); } catch(e) {}
-    showToast('✓ Saved to cloud');
-  } else {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData));
-      showToast('⚠️ Cloud unavailable — saved locally only');
-      alert('⚠️ Cloud save failed\n\nYour changes have been saved to this browser only — not the shared database.\n\nPlease check your internet connection. Your work is not lost but others won\'t see it until cloud saving is restored.');
-    } catch(e) {
-      if (e.name === 'QuotaExceededError') {
-        alert('🚨 Save failed — storage full\n\nCloud save failed AND your browser storage is full. Your changes have NOT been saved.\n\nPlease check your internet connection and try again.');
-      } else {
-        showToast('🚨 Save failed');
-        alert('🚨 Save failed\n\nNeither cloud nor local save worked. Please check your internet connection and try again. Do not close this tab.');
-      }
-    }
-  }
 }
 
 function showToast(msg) {
@@ -692,7 +713,7 @@ function saveCard() {
     addedPages: [...editPages],
     removedPages: [...removedBasePages],
   };
-  saveData();
+  saveData(currentEdit);
   closeModal();
   render();
 }
