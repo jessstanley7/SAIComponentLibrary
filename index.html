@@ -120,6 +120,7 @@ textarea:focus{border-color:var(--text);}
 
 .saving-toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:white;padding:9px 15px;border-radius:var(--radius);font-size:12px;font-family:'DM Mono',monospace;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:300;}
 .saving-toast.show{opacity:1;}
+.saving-toast.error{background:#A32D2D;}
 .page-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border-strong);background:var(--surface2);color:var(--text-2);font-family:'DM Mono',monospace;}
 .page-chip.is-base{border-color:#A0B8F0;background:#EEF4FF;color:#1A4A8A;}
 .page-chip.is-added{border-color:#80D0A8;background:#EEFAF4;color:#1A5A34;}
@@ -173,12 +174,38 @@ textarea:focus{border-color:var(--text);}
     <option value="working">Working</option>
     <option value="needs-fix">Needs fix</option>
   </select>
-  <div style="position:relative;flex:1;min-width:180px;max-width:300px;">
-    <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;width:14px;height:14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <input type="text" id="pageFilter" list="page-list" placeholder="Filter by page…" oninput="filterCards()" style="width:100%;padding:7px 10px 7px 32px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;">
-    <datalist id="page-list"></datalist>
+  <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:200px;max-width:340px;">
+    <div style="position:relative;flex:1;">
+      <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);pointer-events:none;width:14px;height:14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <input type="text" id="pageFilter" list="page-list" placeholder="Filter by page…" oninput="filterCards()" style="width:100%;padding:7px 10px 7px 32px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;">
+      <datalist id="page-list"></datalist>
+    </div>
+    <button onclick="openAddPageModal()" title="Add a new page" style="flex-shrink:0;width:32px;height:32px;border-radius:var(--radius);border:1px solid var(--border-strong);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-2);font-size:18px;line-height:1;padding-bottom:1px;">+</button>
   </div>
   <span class="toolbar-stats" id="toolbar-stats">141 shown</span>
+</div>
+
+<!-- ADD PAGE MODAL -->
+<div class="modal-backdrop hidden" id="add-page-modal" onclick="if(event.target.id==='add-page-modal')closeAddPageModal()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:400px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Add a new page</div>
+        <div class="modal-sub">It will appear in the page filter and component page lists</div>
+      </div>
+      <button class="close-btn" onclick="closeAddPageModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div class="field-label">Page name</div>
+        <input type="text" id="new-page-input" placeholder="e.g. Pricing — New Page" style="width:100%;padding:9px 11px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);outline:none;" onkeydown="if(event.key==='Enter')confirmAddPage()">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeAddPageModal()">Cancel</button>
+      <button class="btn-primary" onclick="confirmAddPage()">Add page</button>
+    </div>
+  </div>
 </div>
 
 <div class="main" id="main-content"></div>
@@ -355,7 +382,6 @@ async function loadData() {
   render();
 }
 
-// Saves only the single component that just changed
 async function saveData(changedId) {
   if (!changedId) return;
   showToast('Saving…');
@@ -363,13 +389,12 @@ async function saveData(changedId) {
   if (ok) {
     showToast('✓ Saved to cloud');
   } else {
-    showToast('⚠️ Cloud unavailable');
+    showToast('⚠️ Did not save — trying local backup…', true);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cardData));
-      alert('⚠️ Cloud save failed\n\nSaved to this browser only. Check your internet connection — others won\'t see this change until cloud saving is restored.');
+      showToast('⚠️ Did not save to cloud — saved locally only', true);
     } catch(e) {
-      showToast('🚨 Save failed');
-      alert('🚨 Save failed\n\nNeither cloud nor local save worked. Do not close this tab — check your connection and try again.');
+      showToast('🚨 Did not save — check your connection', true);
     }
   }
 }
@@ -414,11 +439,12 @@ function defaultMig(comp) {
 const PAGE_MAP = {"Home":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","homepage-resources","sv2-scrolling-logos","sv2-wonder-wall"],"Retail CPG - Landing Page":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-fullwidth-image-content","sv2-personas","sv2-scrolling-logos","sv2-wonder-wall"],"Revenue growth management for CPGs - Retail Subpage":["table-of-contents"],"Collaboration Monetization - Retail Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","50-50-cta-video-bg","cta-center-banner","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content","stats-block"],"Workbench - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Service Desk Intelligence - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Self-service Capability - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Question and answer - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Personalization - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Multi-Tenant - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Multi-Channel Support - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Live Agent Transfer - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Knowledge Recommendation - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Conversational Flows - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Auto Resolve - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"API Integration - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"NLU - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"24/7 Availability - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Advanced Analytics - Retail Subpage":["4-blocks-icon-title-text","50-50-cta-video-bg","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Connected Retail - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","cta-center-banner","secondary-hero-50-50","solutions-slider","fullwidth-image-content","video-play"],"Fuel Convenience-  Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","50-50-cta-video-bg","featured-solutions-list","cta-left","solutions-slider"],"Fuel Analytics - Retail Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-left","secondary-hero-50-50"],"Customer Insights Platform - Retail Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-left","featured-resources","secondary-hero-50-50"],"Data Decisioning - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","vertical-solutions-list","icon-subcopy-blocks-acf-gtb-ab009","cta-left","secondary-hero-50-50"],"Assortment Optimization - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","stats-block"],"Apex IT Platform - Retail Subpage":["50-50-cta-image","vertical-solutions-list","50-50-cta-video-bg","cta-center-banner","resources","latest-news-resources-events","secondary-hero-full-bg","testimonials-slider"],"Retail Generative AI Copilots - Retail Subpage":["50-50-cta-image","vertical-solutions-list","icon-subcopy-blocks-acf-gtb-ab009","cta-center-banner","latest-news-resources-events","featured-resources","secondary-hero-50-50","50-50-blocks","diagram-3-block-contents-text"],"Shelf Planning - Retail Subpage":["50-50-cta-image","4-blocks-icon-title-text","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"CPG - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","vertical-solutions-list","50-50-cta-video-bg","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","testimonials-slider","stats-block"],"Supply Chain Management - Retail Subpage":["solutions-overview-blocklist","3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"Supply Chain Intelligence - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"Replenishment and Allocation - Retail Subpage":["3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"Demand Forecasting - Retail Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"Supply Chain - Retail Subpage":["3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","solutions-slider","stats-block"],"Promotion Optimization - Retail Subpage":["50-50-cta-image","4-blocks-icon-title-text","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","testimonial-single-block"],"Personalized Marketing - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block"],"CINDE AI - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block","video-play"],"Merchandising and Marketing - Retail Subpage":["solutions-overview-blocklist","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","featured-resources","secondary-hero-50-50","solutions-slider","stats-block"],"Store Operations - Retail Subpage":["50-50-cta-image","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","testimonials-slider","stats-block"],"Store Intelligence - Retail Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","stats-block"],"Macro Space Planning - Retail Subpage":["50-50-cta-image","4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","stats-block"],"Store and Space - Retail Subpage":["solutions-overview-blocklist","3-up-icon-title-text-acf-gtb-ab007","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","solutions-slider","stats-block"],"Digital Agent - Retail Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50"],"Grocery - Retail Industry Page":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","cta-center-banner","latest-news-resources-events","featured-resources","secondary-hero-50-50","solutions-slider","testimonials-slider","stats-block"],"Pharma - Retail Industry Page":["50-50-cta-image","4-blocks-icon-title-text","cta-left","secondary-hero-50-50"],"Resources \u2013 Retail CPG":["hero","latest-news-resources-events"],"Events \u2013 Retail CPG":["events-block","hero","latest-news-resources-events"],"News \u2013 Retail CPG":["hero","news-block"],"Financial Services - Landing Page":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-fullwidth-image-content","sv2-personas","sv2-scrolling-logos","sv2-wonder-wall"],"Financial Platform":["sv2-60-40","sv2-eureka-cards","sv2-eureka-hero","sv2-eureka-hero-50","sv2-fullwidth-image-content","sv2-microsoft-faq","sv2-microsoft-related-resources","sv2-microsoft-vertical-slide"],"Sensa Risk Intelligence - redirects to the platform page":["50-50-cta-image","2-up-icon-title-text","featured-resources","secondary-hero-50-50","solutions-slider"],"Agentic AI - FS Subpage":["50-50-cta-image","vertical-solutions-list","2-up-icon-title-text","featured-resources","secondary-hero-50-50","solutions-slider","testimonials-slider"],"Anti-Money Laundering - FS Subpage":["50-50-cta-image","accordion-tabs-image-video","solutions-overview-blocklist","vertical-solutions-list","50-50-cta-video-bg","featured-solutions-list","2-up-icon-title-text","accordion-faq-tabs-new","cta-center-banner","secondary-hero-50-50","solutions-slider","testimonials-slider","table-of-contents","stats-block"],"AML Software - FS Subpage":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","50-50-cta-video-bg","2-up-icon-title-text","accordion-faq-tabs-new","cta-left","latest-news-resources-events","featured-resources","secondary-hero-50-50","main-logo-band","table-of-contents"],"Case Management - FS Subpage":["accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider"],"NetReveal Payment Fraud - FS Subpage":["50-50-cta-image","featured-resources","secondary-hero-50-50","solutions-slider"],"NetReveal Sanctions Screening - FS Subpage":["50-50-cta-image","featured-resources","secondary-hero-50-50","solutions-slider"],"KYC CDD - FS Subpage":["50-50-cta-image","accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider","stats-block"],"Transaction Monitoring - FS Subpage":["50-50-cta-image","accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider","stats-block"],"NetReveal Transaction Monitoring - FS Subpage":["50-50-cta-image","resources","latest-news-resources-events","secondary-hero-50-50"],"Sensa Copilot - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","accordion-faq-tabs-new","cta-center-banner","resources","secondary-hero-50-50"],"Scale - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50"],"Fraud - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50"],"Risk - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50"],"Detection - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","latest-news-resources-events","secondary-hero-50-50"],"Entity Resolution - FS Subpage":["50-50-cta-image","resources","featured-resources","secondary-hero-50-50","solutions-slider"],"Scale Performance - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Name Screening - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Transaction Screening - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"False Positives - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Match Accuracy - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Compliance - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Interactive Demo - FS Subpage":["hero","50-50-cta-video-bg"],"Decision Automation - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Unified Data - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","latest-news-resources-events","secondary-hero-50-50"],"Sanctions Screening - FS Subpage":["accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider","stats-block"],"Onboarding - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Disclosures - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50"],"Risk Assessment - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","secondary-hero-50-50","solutions-slider"],"Investigate - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","resources","latest-news-resources-events","secondary-hero-50-50"],"Centralize Data - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","cta-center-banner","resources","secondary-hero-50-50"],"Administrative - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","cta-center-banner","resources","secondary-hero-50-50"],"SensaAI for AML - FS Subpage":["50-50-cta-image","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content"],"SensaAI for Sanctions - FS Subpage":["50-50-cta-image","4-blocks-icon-title-text","featured-resources","secondary-hero-50-50","stats-block"],"AI Overlays- FS Subpage":["accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider","stats-block"],"Sensa Investigation Hub - FS Subpage":["50-50-cta-image","featured-resources","secondary-hero-50-50"],"Enterprise Investigation Management - FS Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider"],"Recognition \u2013 Financial Services - FS Subpage":["4-blocks-icon-title-text","cta-left","resources","latest-news-resources-events","secondary-hero-full-bg","main-logo-band"],"Customer Due Diligence (CDD) - FS Subpage":["50-50-cta-image","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content"],"Payment Fraud - FS Subpage":["50-50-cta-image","accordion-tabs-image-video","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","solutions-slider","stats-block"],"WLM Name Screening - FS Subpage":["3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider","slider-video-bg-content","stats-block"],"WLM Transaction Screening - FS Subpage":["normal-content-block","3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider","slider-video-bg-content","stats-block"],"Banking - FS Industry page":["3-up-icon-title-text-acf-gtb-ab007","50-50-cta-video-bg","featured-solutions-list","accordion-faq-tabs-new","resources","latest-news-resources-events","secondary-hero-50-50","stats-block"],"Private banking and wealth management - FS Industry page":["3-up-icon-title-text-acf-gtb-ab007","50-50-cta-video-bg","featured-solutions-list","accordion-faq-tabs-new","resources","latest-news-resources-events","secondary-hero-50-50","slider-video-bg-content"],"Insurance - FS Industry page":["50-50-cta-image","colored-tab-module","accordion-faq-tabs-new","latest-news-resources-events","featured-resources","secondary-hero-50-50","main-logo-band","solutions-slider","stats-block"],"Financial markets - FS Industry page":["50-50-cta-video-bg","featured-solutions-list","accordion-faq-tabs-new","resources","latest-news-resources-events","secondary-hero-50-50","solutions-slider","stats-block"],"Gaming - FS Industry page":["50-50-cta-image","colored-tab-module","accordion-faq-tabs-new","latest-news-resources-events","featured-resources","secondary-hero-50-50","main-logo-band"],"Events \u2013 Financial Services":["events-block","hero","latest-news-resources-events"],"News \u2013 Financial Services":["news-block"],"Resources \u2013 Financial Services":["hero","latest-news-resources-events"],"Industrial - Landing Page":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-fullwidth-image-content","sv2-personas","sv2-scrolling-logos","sv2-wonder-wall"],"IRIS Forge - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","accordion-faq-tabs-new","cta-left","featured-resources","secondary-hero-50-50","fullwidth-image-content","stats-block"],"IRIS Flows - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","40-60-tab-module","cta-left","featured-resources","secondary-hero-50-50","fullwidth-image-content","video-play"],"NVIDIA Omniverse for IRIS Foundry - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50","fullwidth-image-content"],"MS AI Agent \u2013 Industrial Data Exploration & Investigation Agent- Industrial Subpage":["colored-tab-module","cta-center-banner","featured-resources","secondary-hero-50-50","slider-video-bg-content"],"MS AI Agent \u2013 Frontline Worker Agent - Industrial Subpage":["colored-tab-module","cta-center-banner","featured-resources","secondary-hero-50-50","slider-video-bg-content"],"Skills Training- Industrial Subpage":["cta-center-banner","featured-resources","secondary-hero-50-50","50-50-blocks","fullwidth-image-content"],"Model Context Protocol (MCP) - Industrial Subpage":["accordion-tabs-image-video","4-blocks-icon-title-text","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","fullwidth-image-content"],"CPG - Industrial Subpage":["sv2-60-40","sv2-ai-that-moves","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-fullwidth-image-content","sv2-personas","sv2-scrolling-logos","sv2-wonder-wall"],"Unified Namespace: the complete guide - Industrial Subpage":["accordion-tabs-image-video","solutions-overview-blocklist","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","2-up-icon-title-text","accordion-faq-tabs-new","cta-center-banner","secondary-hero-50-50","solutions-slider","testimonials-slider","table-of-contents"],"Manufacturing Workflow Intelligence - Industrial Subpage":["2-up-icon-title-text","40-60-tab-module","colored-tab-module","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content","stats-block","testimonial-single-block"],"Predictive Asset Intelligence - Industrial Subpage":["50-50-cta-image","2-up-icon-title-text","40-60-tab-module","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content","stats-block","testimonial-single-block"],"Plant Insights - Industrial Subpage":["40-60-tab-module","featured-resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content","stats-block"],"IRIS Workspace- Industrial Subpage":["40-60-tab-module","featured-resources","secondary-hero-50-50","fullwidth-image-content","stats-block"],"Why SymphonyAI - Industrial Subpage":["40-60-tab-module","cta-left","resources","secondary-hero-50-50","fullwidth-image-content","stats-block"],"ML Studio - Industrial Subpage":["50-50-cta-image","colored-tab-module","featured-resources","secondary-hero-60-40","fullwidth-image-content"],"Unified Namespace - Industrial Subpage":["50-50-cta-image","accordion-tabs-image-video","icon-subcopy-blocks-acf-gtb-ab009","50-50-cta-video-bg","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","slider-video-bg-content","fullwidth-image-content"],"P&ID Ingestion - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","secondary-hero-50-50","slider-video-bg-content","fullwidth-image-content"],"Vision AI - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","featured-resources","secondary-hero-50-50","fullwidth-image-content"],"IRIS Foundry - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","colored-tab-module","accordion-faq-tabs-new","cta-left","featured-resources","secondary-hero-50-50","slider-video-bg-content","fullwidth-image-content","video-play"],"Industrial Data Operations - Industrial Subpage":["4-blocks-icon-title-text","cta-left","resources","secondary-hero-50-50","slider-video-bg-content","fullwidth-image-content"],"Connectors - Industrial Subpage":["4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","50-50-cta-video-bg","featured-resources","secondary-hero-50-50","fullwidth-image-content"],"Industrial LLM - Industrial Subpage":["llm-blocks-container","llm-datasets","llm-divided-content","llm-footer","llm-hero","llm-image-grid","llm-logos-box"],"Industrial LLM \u2013 Symphony - Industrial Subpage":["llm-blocks-container","llm-datasets","llm-divided-content","llm-footer","llm-hero","llm-image-grid","llm-logos-box","featured-resources"],"Smart Manufacturing Platform - Industrial Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","resources","secondary-hero-50-50","solutions-slider","fullwidth-image-content"],"Industrial AI Copilots - Industrial Subpage":["50-50-cta-image","colored-tab-module","featured-resources","secondary-hero-50-50","stats-block"],"Knowledge Graph - Industrial Subpage":["4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","cta-left","featured-resources","secondary-hero-50-50","fullwidth-image-content","overview-image-content"],"Digital Twin - Industrial Subpage":["50-50-cta-image","4-blocks-icon-title-text","50-50-cta-video-bg","2-up-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50","sticky-text-image","fullwidth-image-content","video-play"],"Digital Work Instructions - Industrial Subpage":["cta-center-banner","featured-resources","secondary-hero-50-50","50-50-blocks","fullwidth-image-content"],"Process - Industrial Subpage":["icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50","fullwidth-image-content"],"Connected Worker - Industrial Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","40-60-tab-module","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","solutions-slider","testimonials-slider","fullwidth-image-content","stats-block"],"Digital Inspections - Industrial Subpage":["cta-center-banner","featured-resources","secondary-hero-50-50","50-50-blocks","fullwidth-image-content"],"Food and Beverage - Industrial Industry":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","solutions-grid-module","solutions-vertical-slider","latest-news-resources-events","secondary-hero-50-50"],"Utilities - Industrial Industry":["icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50","fullwidth-image-content"],"Semiconductor - Industrial Industry":["4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50"],"Pharmaceutical - Industrial Industry":["3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50"],"Oil and gas - Industrial Industry":["50-50-cta-image","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50"],"Energy - Industrial Industry":["3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50"],"Chemical - Industrial Industry":["3-up-icon-title-text-acf-gtb-ab007","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50"],"Assembly - Industrial Industry":["icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","latest-news-resources-events","secondary-hero-50-50","fullwidth-image-content"],"Events \u2013 Industrial":["events-block","hero","latest-news-resources-events"],"News \u2013 Industrial":["hero","news-block"],"Resources \u2013 Industrial":["hero","latest-news-resources-events"],"Enterprise IT \u2013 New - Landing Page":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-personas","sv2-scrolling-logos","sv2-wonder-wall"],"Apex 2.0 \u2013 Enterprise IT":["hero","sv2-carousel-two-column","sv2-content-accordion","sv2-content-bg","sv2-content-cards","sv2-content-carousel","sv2-content-carousel-table","sv2-content-table","sv2-hero-application-detail","sv2-microsoft-faq","sv2-microsoft-value"],"Agentic AI - ITSM Subpage":["50-50-cta-image","4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","50-50-cta-video-bg","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50","fullwidth-image-content"],"Global Capability Centers - ITSM Subpage":["vertical-solutions-list","50-50-cta-video-bg","featured-solutions-list","cta-center-banner","featured-resources","secondary-hero-50-50"],"Security and Trust - ITSM Subpage":["latest-news-resources-events","secondary-hero-50-50"],"Integration Hub - ITSM Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","main-logo-band"],"Discovery - ITSM Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50"],"Design Studio - ITSM Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50"],"Service Automation - ITSM Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50"],"IT Asset Management - ITSM Subpage":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50"],"IT Service Management - ITSM Subpage":["50-50-cta-image","vertical-solutions-list","50-50-cta-video-bg","featured-solutions-list","colored-tab-module","latest-news-resources-events","featured-resources","secondary-hero-50-50","testimonials-slider","stats-block"],"Events \u2013 IT":["events-block","hero","latest-news-resources-events"],"News \u2013 IT":["hero","news-block"],"Resources \u2013 IT":["hero","latest-news-resources-events"],"Media Landing \u2013 New - Landing Page":["sv2-ai-that-moves","sv2-banner","sv2-cta-block","sv2-cta-with-bg","sv2-cards","sv2-fullwidth-image-content","sv2-microsoft-related-resources","sv2-scrolling-logos"],"Data Ops Suite - Media Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","cta-center-banner","secondary-hero-50-50"],"Products - Media Subpage":["50-50-cta-image","4-blocks-icon-title-text","cta-center-banner","featured-resources","secondary-hero-50-50"],"Managed Services - Media Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","cta-center-banner","featured-resources","secondary-hero-50-50","solutions-slider","stats-block"],"Revedia - Media Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","cta-center-banner","featured-resources","secondary-hero-50-50","solutions-slider","stats-block"],"Audit Services - Media Subpage":["4-blocks-icon-title-text","3-up-icon-title-text-acf-gtb-ab007","featured-solutions-list","cta-center-banner","resources","secondary-hero-50-50","stats-block"],"Eureka AI Platform":["2-up-image-title-text-cards","sv2-eureka-4-icon","sv2-eureka-cards","sv2-eureka-content-block","sv2-eureka-duo-cards","sv2-eureka-hero","sv2-eureka-logos"],"Make Your Data AI Ready":["sv2-eureka-cta","sv2-eureka-cards","sv2-eureka-content-block","sv2-eureka-duo-cards","sv2-eureka-hero","sv2-eureka-hero-50","sv2-eureka-steps"],"Eureka \u2013 Build AI Agents":["sv2-eureka-agentic-features","sv2-eureka-cta","sv2-eureka-content-block","sv2-eureka-hero","sv2-eureka-hero-50","sv2-eureka-responsive-cards","sv2-eureka-steps","sv2-microsoft-link","sv2-slider"],"Responsible AI":["50-50-cta-image","4-blocks-icon-title-text","icon-subcopy-blocks-acf-gtb-ab009","50-50-cta-video-bg","featured-solutions-list","accordion-faq-tabs-new","featured-resources","secondary-hero-50-50"],"Resources":["hero","resources-block","latest-news-resources-events"],"About SymphonyAI":["50-50-cta-image","50-50-cta-video-bg","accordion-faq-tabs-new","latest-news-resources-events","secondary-hero-full-bg","main-logo-band","stats-block","4-up-image-title-text-cards"],"Vertical AI":["sv2-content-bg","sv2-content-carousel","sv2-eureka-cta","sv2-eureka-cards","sv2-eureka-content-block","sv2-eureka-hero","sv2-eureka-responsive-cards","sv2-features-3-up-icons","sv2-microsoft-link","sv2-microsoft-testimonial"],"News":["hero","news-block","latest-news-resources-events"],"Events":["events-block","hero"],"Customers":["resources-block","accordion-faq-tabs-new","featured-resources","secondary-hero-50-50","main-logo-band","logos-grid","icon-cards-slider","testimonials-slider"],"Industry Awards and Recognition":["hero","icon-subcopy-blocks-acf-gtb-ab009","50-50-cta-video-bg","cta-center-banner"],"Partner Overview":["sv2-eureka-logos","sv2-microsoft-faq","sv2-po-50","sv2-po-big-card","sv2-po-cta","sv2-po-hero","sv2-po-latest-news","sv2-po-logo","sv2-po-microsoft-card","sv2-po-resources"],"Leadership":["hero","50-50-cta-image","cta-center-banner","leadership-grid","latest-news-resources-events","overview-image-content"],"Careers":["50-50-cta-image","icon-subcopy-blocks-acf-gtb-ab009","featured-solutions-list","accordion-faq-tabs-new","cta-center-banner","latest-news-resources-events","secondary-hero-full-bg","icon-cards-slider","solutions-slider","testimonials-slider","4-up-image-title-text-cards"],"Contact us":["request-a-demo","4-blocks-icon-title-text","featured-solutions-list","latest-news-resources-events","overview-image-content"],"Get started":["latest-news-resources-events","featured-resources"],"Get started \u2013 Retail":["request-a-demo","latest-news-resources-events","featured-resources"],"Get started - FS":["request-a-demo","latest-news-resources-events","featured-resources"],"Get started \u2013 Industrial":["request-a-demo","latest-news-resources-events","featured-resources"],"Get started \u2013 ITSM":["request-a-demo","latest-news-resources-events","featured-resources"],"Get started \u2013 Media":["request-a-demo","cta-center-banner","latest-news-resources-events","featured-resources"],"Partners Get Started":["partners-request-a-demo","featured-solutions-list","featured-resources"],"Thank you - Retail Form Thank You Page":["confirmation-message"],"Microsoft Partner - not in menu":["sv2-microsoft-cards","sv2-microsoft-faq","sv2-microsoft-hero","sv2-microsoft-intro","sv2-microsoft-link","sv2-microsoft-related-resources","sv2-microsoft-testimonial","sv2-microsoft-testimonial-carousel","sv2-microsoft-value","sv2-microsoft-vertical-slide","sv2-microsoft-video"],"Support- not in menu":["hero","4-blocks-icon-title-text","50-50-cta-video-bg","colored-tab-module"],"AI SaaS Products- not in menu":["solutions-overview-blocklist-new","accordion-faq-tabs-new","cta-center-banner","featured-resources","secondary-hero-50-50"],"ROI Calculator":["cta-left"]};
 
 function initPageList() {
-  const pages = Object.keys(PAGE_MAP).sort();
+  const allPages = [...Object.keys(PAGE_MAP).sort(), ...customPages.sort()];
   ['page-list', 'page-list-modal'].forEach(dlId => {
     const dl = document.getElementById(dlId);
     if (!dl) return;
-    pages.forEach(p => {
+    dl.innerHTML = '';
+    allPages.forEach(p => {
       const opt = document.createElement('option'); opt.value = p; dl.appendChild(opt);
     });
   });
@@ -452,12 +478,14 @@ function getPageFilterIds(pageVal) {
   return ids.size ? ids : new Set();
 }
 
-function showToast(msg) {
+function showToast(msg, isError = false) {
   const el = document.getElementById('saving-toast');
-  if (!msg) { el.classList.remove('show'); return; }
-  el.textContent = msg; el.classList.add('show');
+  if (!msg) { el.classList.remove('show', 'error'); return; }
+  el.textContent = msg;
+  el.classList.toggle('error', isError);
+  el.classList.add('show');
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => el.classList.remove('show'), 4000);
+  saveTimer = setTimeout(() => el.classList.remove('show', 'error'), isError ? 6000 : 4000);
 }
 
 const CAT_ORDER = ['hero','cta','content','cards','resources','logos','media','data','utility','microsoft'];
@@ -632,14 +660,12 @@ function removeAddedPage(idx) {
   renderPageChips(currentEdit);
 }
 
-function addPageToEdit() {
+async function addPageToEdit() {
   const input = document.getElementById('page-add-input');
   const val = input.value.trim();
   if (!val) return;
-  // Don't add duplicates
   const base = getBasePages(currentEdit).filter(p => !removedBasePages.has(p));
   if (base.includes(val) || editPages.includes(val)) { input.value = ''; return; }
-  // Re-add a previously removed base page
   if (removedBasePages.has(val)) {
     removedBasePages.delete(val);
   } else {
@@ -647,6 +673,21 @@ function addPageToEdit() {
   }
   input.value = '';
   renderPageChips(currentEdit);
+
+  // If it's a brand new page (not in PAGE_MAP or customPages), register it
+  const isKnown = PAGE_MAP[val] || customPages.includes(val);
+  if (!isKnown) {
+    customPages.push(val);
+    await saveCustomPages();
+    // Add to datalists immediately
+    ['page-list', 'page-list-modal'].forEach(dlId => {
+      const dl = document.getElementById(dlId);
+      if (!dl) return;
+      const opt = document.createElement('option');
+      opt.value = val;
+      dl.appendChild(opt);
+    });
+  }
 }
 
 function updateToggleUI() {
@@ -720,6 +761,66 @@ function saveCard() {
 
 function filterCards() { render(); }
 
+// ── CUSTOM PAGES ──────────────────────────────────────────────────────────
+// Pages added by the user (stored in Supabase under id='_custom_pages')
+let customPages = [];
+
+async function loadCustomPages() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/component_data?id=eq._custom_pages&select=data`, { headers: HEADERS });
+    const rows = await res.json();
+    if (rows && rows.length > 0 && Array.isArray(rows[0].data)) {
+      customPages = rows[0].data;
+    }
+  } catch(e) {}
+}
+
+async function saveCustomPages() {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/component_data`, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({ id: '_custom_pages', data: customPages, updated_at: new Date().toISOString() })
+    });
+  } catch(e) {}
+}
+
+function openAddPageModal() {
+  document.getElementById('add-page-modal').classList.remove('hidden');
+  document.getElementById('new-page-input').value = '';
+  setTimeout(() => document.getElementById('new-page-input').focus(), 50);
+}
+
+function closeAddPageModal() {
+  document.getElementById('add-page-modal').classList.add('hidden');
+}
+
+async function confirmAddPage() {
+  const val = document.getElementById('new-page-input').value.trim();
+  if (!val) return;
+  // Don't add duplicates
+  if (PAGE_MAP[val] || customPages.includes(val)) {
+    showToast('Page already exists', true);
+    closeAddPageModal();
+    return;
+  }
+  customPages.push(val);
+  await saveCustomPages();
+  // Add to both datalists immediately
+  ['page-list', 'page-list-modal'].forEach(dlId => {
+    const dl = document.getElementById(dlId);
+    if (!dl) return;
+    const opt = document.createElement('option');
+    opt.value = val;
+    dl.appendChild(opt);
+  });
+  showToast(`✓ Page "${val}" added`);
+  closeAddPageModal();
+  // Set the filter to the new page so user can see it
+  document.getElementById('pageFilter').value = val;
+  filterCards();
+}
+
 const dz = document.getElementById('drop-zone');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
 dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
@@ -738,11 +839,10 @@ dz.addEventListener('drop', e => {
   }
 });
 
-// Render immediately with empty cardData so page is never blank
+// Render immediately so page is never blank
 render();
-// Then load saved data and re-render
-loadData();
-initPageList();
+// Load data then custom pages then init
+loadData().then(() => loadCustomPages().then(() => initPageList()));
 
 // ── EXPORT CSV ───────────────────────────────────────────────────────────
 function exportCSV() {
